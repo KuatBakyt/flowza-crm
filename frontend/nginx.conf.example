@@ -1,0 +1,9 @@
+server {
+    listen 80;
+    server_name crm.example.com;
+    root /var/www/flowza;
+    index index.html;
+    location / { try_files $uri $uri/ /index.html; }
+    location = /index.html { add_header Cache-Control "no-cache"; }
+    # Terminate HTTPS at this server or the trusted reverse proxy.
+}

@@ -1,0 +1,94 @@
+import 'package:flutter/material.dart';
+import 'package:flutter_test/flutter_test.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:intl/date_symbol_data_local.dart';
+import 'package:flowza/main.dart';
+import 'package:flowza/core/api.dart';
+import 'package:flowza/core/router.dart';
+
+import 'helpers.dart';
+
+Future<ProviderContainer> boot(
+  WidgetTester tester,
+  FixtureServer server, {
+  bool signed = true,
+}) async {
+  final tokens = MemoryTokens();
+  if (signed) await tokens.save('a', 'r');
+  final container = ProviderContainer(
+    overrides: [
+      apiProvider.overrideWithValue(
+        ApiClient(tokens, adapter: JsonAdapter(server.call)),
+      ),
+    ],
+  );
+  await tester.pumpWidget(
+    UncontrolledProviderScope(container: container, child: const FlowzaApp()),
+  );
+  await tester.pumpAndSettle();
+  return container;
+}
+
+void main() {
+  setUpAll(() => initializeDateFormatting('ru'));
+  testWidgets('Login validates missing identity and password', (t) async {
+    final c = await boot(t, FixtureServer(), signed: false);
+    addTearDown(c.dispose);
+    await t.tap(find.text('Войти'));
+    await t.pumpAndSettle();
+    expect(find.text('Введите телефон или email'), findsOneWidget);
+    expect(find.text('Введите пароль'), findsOneWidget);
+  });
+  for (final mode in ['empty', 'error', 'data']) {
+    testWidgets('Orders $mode state', (t) async {
+      final server = FixtureServer()
+        ..empty = mode == 'empty'
+        ..ordersStatus = mode == 'error' ? 500 : 200;
+      final c = await boot(t, server);
+      addTearDown(c.dispose);
+      c.read(routerProvider).go('/orders');
+      await t.pumpAndSettle();
+      expect(
+        find.text(
+          mode == 'empty'
+              ? 'Заказов пока нет'
+              : mode == 'error'
+              ? 'Ошибка загрузки'
+              : 'Поклейка обоев',
+        ),
+        findsOneWidget,
+      );
+      expect(t.takeException(), isNull);
+    });
+  }
+  testWidgets('Order detail confirms through API', (t) async {
+    final server = FixtureServer();
+    final c = await boot(t, server);
+    addTearDown(c.dispose);
+    c.read(routerProvider).go('/orders/o1');
+    await t.pumpAndSettle();
+    final button = find.widgetWithText(FilledButton, 'Подтвердить заказ');
+    await t.ensureVisible(button);
+    await t.pumpAndSettle();
+    await t.tap(button);
+    await t.pumpAndSettle();
+    expect(server.actions, ['confirm']);
+    expect(find.text('Подтверждён'), findsOneWidget);
+    expect(t.takeException(), isNull);
+  });
+  for (final size in [const Size(390, 844), const Size(1440, 1000)]) {
+    testWidgets('Responsive dashboard ${size.width}', (t) async {
+      t.view.physicalSize = size;
+      t.view.devicePixelRatio = 1;
+      addTearDown(t.view.resetPhysicalSize);
+      addTearDown(t.view.resetDevicePixelRatio);
+      final c = await boot(t, FixtureServer());
+      addTearDown(c.dispose);
+      expect(
+        find.text('Flowza'),
+        size.width > 1000 ? findsOneWidget : findsNothing,
+      );
+      expect(t.takeException(), isNull);
+    });
+  }
+}

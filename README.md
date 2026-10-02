@@ -1,8 +1,20 @@
-# Flowza CRM — Backend
+# Flowza CRM — Django + Flutter
 
 Рабочий backend MVP CRM для мастеров по `TZ_CRM_ONLY_Django_REST_Flutter(1).docx`:
 Python 3.12, Django REST Framework, PostgreSQL 16, JWT, Celery и Redis.
-Flutter-интерфейс в этот этап не входит. API готов для его подключения.
+Flutter-интерфейс находится в `frontend/`: вход, заказы, клиенты, календарь, передачи, уведомления, статистика и профиль. Подключён к этому API.
+
+## Запуск интерфейса
+
+После запуска backend, в отдельном терминале:
+
+```powershell
+cd frontend
+flutter pub get
+flutter run -d chrome --web-port=8080 --dart-define=API_BASE_URL=http://localhost:8000/api/v1/
+```
+
+Подробности, снимки экранов и проверки: [frontend/README.md](frontend/README.md).
 
 ## Запуск на Windows / PowerShell
 
