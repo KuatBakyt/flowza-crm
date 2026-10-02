@@ -58,7 +58,7 @@ def test_local_working_hours_breaks_weekend_and_timezone(api, data):
     master = data['masters'][0]
     hours = {str(day): [] for day in range(7)}
     hours['0'] = [['09:00', '13:00'], ['14:00', '18:00']]
-    result = api.patch('/api/v1/me/', {'master_profile': {'timezone': 'Asia/Almaty', 'working_hours': hours}}, format='json')
+    result = api.patch('/api/v1/me/', {'master_profile': {'working_hours': hours}}, format='json')
     assert result.status_code == 200
     slots = free_slots(master.pk, date(2026, 10, 5))
     assert slots == [

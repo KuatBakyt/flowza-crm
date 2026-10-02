@@ -32,6 +32,28 @@ Future<ProviderContainer> boot(
 
 void main() {
   setUpAll(() => initializeDateFormatting('ru'));
+  testWidgets('Profile has immutable identity and a mobile weekly schedule', (
+    t,
+  ) async {
+    t.view.physicalSize = const Size(390, 1800);
+    t.view.devicePixelRatio = 1;
+    addTearDown(t.view.resetPhysicalSize);
+    addTearDown(t.view.resetDevicePixelRatio);
+    final c = await boot(t, FixtureServer());
+    addTearDown(c.dispose);
+    c.read(routerProvider).go('/profile');
+    await t.pumpAndSettle();
+    expect(find.byIcon(Icons.edit_outlined), findsNothing);
+    expect(find.byType(TextFormField), findsNothing);
+    expect(find.text('Рабочий график'), findsOneWidget);
+    expect(find.text('Понедельник'), findsOneWidget);
+    expect(find.text('Воскресенье'), findsOneWidget);
+    expect(find.byType(Switch), findsNWidgets(8));
+    await t.tap(find.byType(Switch).last);
+    await t.pumpAndSettle();
+    expect(find.text('Не работаю'), findsOneWidget);
+    expect(t.takeException(), isNull);
+  });
   testWidgets('Login validates missing identity and password', (t) async {
     final c = await boot(t, FixtureServer(), signed: false);
     addTearDown(c.dispose);

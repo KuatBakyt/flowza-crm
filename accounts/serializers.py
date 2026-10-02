@@ -73,6 +73,18 @@ class MeSerializer(serializers.ModelSerializer):
         if data.get('email'):
             data['email'] = data['email'].lower()
         return super().to_internal_value(data)
+    def validate(self, data):
+        protected = {'phone', 'email'} & set(self.initial_data)
+        master = self.initial_data.get('master_profile', {})
+        if isinstance(master, dict):
+            protected |= set(master) - {'is_available', 'working_hours'}
+        if protected:
+            raise serializers.ValidationError(
+                'Личные данные профиля изменяет администратор. '
+                'Можно изменить только доступность и рабочий график.'
+            )
+        return data
+
     master_profile = MasterSerializer(required=False)
     class Meta:
         model = User

@@ -24,10 +24,6 @@ class _Profile extends ConsumerState<ProfileScreen> {
     final skills = ref.watch(skillsCatalog).valueOrNull ?? [];
     return PageBody(
       'Профиль',
-      action: IconButton(
-        onPressed: () => context.push('/profile/edit'),
-        icon: const Icon(Icons.edit_outlined, color: blue),
-      ),
       children: [
         Surface(
           child: Column(
@@ -44,6 +40,7 @@ class _Profile extends ConsumerState<ProfileScreen> {
               Text(u.name, style: Theme.of(context).textTheme.titleLarge),
               const SizedBox(height: 8),
               Text(u.phone),
+              if (u.email != null && u.email!.isNotEmpty) Text(u.email!),
               if (m != null) ...[
                 const SizedBox(height: 10),
                 Text(
@@ -125,6 +122,7 @@ class _Profile extends ConsumerState<ProfileScreen> {
               ],
             ),
           ),
+        if (m != null) const WorkingHoursEditor(),
         if (u.admin)
           OutlinedButton.icon(
             onPressed: () async {
@@ -158,198 +156,215 @@ class _Profile extends ConsumerState<ProfileScreen> {
   }
 }
 
-class ProfileFormScreen extends ConsumerStatefulWidget {
+// Keep old bookmarks useful without exposing personal-data editing.
+class ProfileFormScreen extends StatelessWidget {
   const ProfileFormScreen({super.key});
   @override
-  ConsumerState<ProfileFormScreen> createState() => _ProfileForm();
+  Widget build(BuildContext context) => const ProfileScreen();
 }
 
-class _ProfileForm extends ConsumerState<ProfileFormScreen> {
-  final key = GlobalKey<FormState>(),
-      name = TextEditingController(),
-      phone = TextEditingController(),
-      email = TextEditingController(),
-      city = TextEditingController(),
-      districts = TextEditingController(),
-      timezone = TextEditingController();
-  final hours = List.generate(7, (_) => TextEditingController());
-  bool loaded = false, busy = false;
+class WorkingHoursEditor extends ConsumerStatefulWidget {
+  const WorkingHoursEditor({super.key});
   @override
-  void dispose() {
-    for (final c in [name, phone, email, city, districts, timezone, ...hours]) {
-      c.dispose();
+  ConsumerState<WorkingHoursEditor> createState() => _WorkingHoursEditor();
+}
+
+class _WorkingHoursEditor extends ConsumerState<WorkingHoursEditor> {
+  static const days = [
+    'Понедельник',
+    'Вторник',
+    'Среда',
+    'Четверг',
+    'Пятница',
+    'Суббота',
+    'Воскресенье',
+  ];
+  List<List<List<String>>>? hours;
+  final enabled = List.filled(7, false);
+  bool busy = false;
+  String format(TimeOfDay time) =>
+      '${time.hour.toString().padLeft(2, '0')}:${time.minute.toString().padLeft(2, '0')}';
+
+  Future<void> pick(int day, int interval, int endpoint) async {
+    final parts = hours![day][interval][endpoint].split(':');
+    final time = await showTimePicker(
+      context: context,
+      initialTime: TimeOfDay(
+        hour: int.parse(parts[0]),
+        minute: int.parse(parts[1]),
+      ),
+      builder: (context, child) => MediaQuery(
+        data: MediaQuery.of(context).copyWith(alwaysUse24HourFormat: true),
+        child: child!,
+      ),
+    );
+    if (time != null && mounted) {
+      setState(() => hours![day][interval][endpoint] = format(time));
     }
-    super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
-    final u = ref.watch(authProvider).valueOrNull;
-    if (u == null) return const SizedBox.shrink();
-    if (!loaded) {
-      name.text = u.name;
-      phone.text = u.phone;
-      email.text = u.email ?? '';
-      city.text = u.profile?.city ?? '';
-      districts.text = u.profile?.districts.join(', ') ?? '';
-      timezone.text = u.profile?.timezone ?? 'Asia/Almaty';
-      for (var day = 0; day < 7; day++) {
-        final intervals = u.profile?.workingHours['$day'] as List?;
-        hours[day].text = intervals == null
-            ? '09:00-18:00'
-            : intervals.map((v) => (v as List).join('-')).join(', ');
-      }
-      loaded = true;
-    }
-    return PageBody(
-      'Редактировать профиль',
-      children: [
-        Surface(
-          child: Form(
-            key: key,
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
+    final master = ref.watch(authProvider).valueOrNull?.profile;
+    if (master == null) return const SizedBox.shrink();
+    hours ??= List.generate(7, (day) {
+      final stored = master.workingHours['$day'] as List?;
+      final value = stored == null
+          ? <List<String>>[
+              ['09:00', '18:00'],
+            ]
+          : stored.map((v) => List<String>.from(v as List)).toList();
+      enabled[day] = value.isNotEmpty;
+      return value.isEmpty
+          ? <List<String>>[
+              ['09:00', '18:00'],
+            ]
+          : value;
+    });
+    return Surface(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Text(
+            'Рабочий график',
+            style: Theme.of(context).textTheme.titleMedium,
+          ),
+          const SizedBox(height: 4),
+          Text(
+            'Часовой пояс · ${master.timezone}',
+            style: const TextStyle(color: Color(0xFF78869C), fontSize: 12),
+          ),
+          const SizedBox(height: 12),
+          for (var day = 0; day < 7; day++) ...[
+            Row(
               children: [
-                if (u.profile != null) ...[
-                  TextFormField(
-                    controller: name,
-                    decoration: const InputDecoration(labelText: 'Имя *'),
-                    validator: (v) =>
-                        v == null || v.trim().isEmpty ? 'Введите имя' : null,
-                  ),
-                  const SizedBox(height: 16),
-                ],
-                TextFormField(
-                  controller: phone,
-                  keyboardType: TextInputType.phone,
-                  decoration: const InputDecoration(labelText: 'Телефон *'),
-                  validator: (v) =>
-                      v == null || v.trim().isEmpty ? 'Введите телефон' : null,
-                ),
-                const SizedBox(height: 16),
-                TextFormField(
-                  controller: email,
-                  keyboardType: TextInputType.emailAddress,
-                  decoration: const InputDecoration(labelText: 'Email'),
-                ),
-                if (u.profile != null) ...[
-                  const SizedBox(height: 16),
-                  TextFormField(
-                    controller: city,
-                    decoration: const InputDecoration(labelText: 'Город'),
-                  ),
-                  const SizedBox(height: 16),
-                  TextFormField(
-                    controller: districts,
-                    decoration: const InputDecoration(
-                      labelText: 'Районы через запятую',
-                      helperText:
-                          'Оставьте пустым, чтобы работать по всему городу',
-                    ),
-                  ),
-                ],
-                if (u.profile != null) ...[
-                  const SizedBox(height: 16),
-                  TextFormField(
-                    controller: timezone,
-                    decoration: const InputDecoration(
-                      labelText: 'Часовой пояс (например Asia/Almaty)',
-                    ),
-                    validator: (v) => v == null || v.trim().isEmpty
-                        ? 'Укажите часовой пояс'
-                        : null,
-                  ),
-                  const SizedBox(height: 16),
-                  const Text(
-                    'Рабочие часы. Пустое поле — выходной. Для перерыва: 09:00-13:00, 14:00-18:00',
-                  ),
-                  for (var day = 0; day < 7; day++)
-                    TextFormField(
-                      controller: hours[day],
-                      decoration: InputDecoration(
-                        labelText: const [
-                          'Понедельник',
-                          'Вторник',
-                          'Среда',
-                          'Четверг',
-                          'Пятница',
-                          'Суббота',
-                          'Воскресенье',
-                        ][day],
-                      ),
-                      validator: (v) {
-                        if (v == null || v.trim().isEmpty) return null;
-                        for (final interval in v.split(',')) {
-                          if (!RegExp(
-                            r'^([01]\d|2[0-3]):[0-5]\d-([01]\d|2[0-3]):[0-5]\d$',
-                          ).hasMatch(interval.trim())) {
-                            return 'Формат: 09:00-13:00, 14:00-18:00';
-                          }
-                        }
-                        return null;
-                      },
-                    ),
-                ],
-                const SizedBox(height: 24),
-                FilledButton(
-                  onPressed: busy
+                Expanded(child: Text(days[day])),
+                Switch(
+                  value: enabled[day],
+                  activeThumbColor: Colors.white,
+                  activeTrackColor: blue,
+                  onChanged: busy
                       ? null
-                      : () async {
-                          if (!key.currentState!.validate()) return;
-                          setState(() => busy = true);
-                          final ok = await mutate(context, ref, () async {
-                            await ref
-                                .read(apiProvider)
-                                .request(
-                                  'me/',
-                                  method: 'PATCH',
-                                  data: {
-                                    'phone': phone.text.trim(),
-                                    'email': email.text.trim().isEmpty
-                                        ? null
-                                        : email.text.trim(),
-                                    if (u.profile != null)
-                                      'master_profile': {
-                                        'full_name': name.text.trim(),
-                                        'city': city.text.trim(),
-                                        'timezone': timezone.text.trim(),
-                                        'working_hours': {
-                                          for (var day = 0; day < 7; day++)
-                                            '$day':
-                                                hours[day].text.trim().isEmpty
-                                                ? <List<String>>[]
-                                                : hours[day].text
-                                                      .split(',')
-                                                      .map(
-                                                        (v) =>
-                                                            v.trim().split('-'),
-                                                      )
-                                                      .toList(),
-                                        },
-                                        'districts': districts.text
-                                            .split(',')
-                                            .map((s) => s.trim())
-                                            .where((s) => s.isNotEmpty)
-                                            .toList(),
-                                      },
-                                  },
-                                );
-                            await ref.read(authProvider.notifier).reload();
-                          });
-                          if (mounted && context.mounted) {
-                            setState(() => busy = false);
-                            if (ok) context.pop();
-                          }
-                        },
-                  child: Text(busy ? 'Сохраняем…' : 'Сохранить'),
+                      : (value) => setState(() => enabled[day] = value),
+                ),
+                SizedBox(
+                  width: 136,
+                  child: enabled[day]
+                      ? intervalRow(day, 0)
+                      : const Center(
+                          child: Text(
+                            'Не работаю',
+                            style: TextStyle(color: Color(0xFF78869C)),
+                          ),
+                        ),
                 ),
               ],
             ),
+            if (enabled[day]) ...[
+              for (var i = 1; i < hours![day].length; i++)
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.end,
+                  children: [
+                    SizedBox(width: 136, child: intervalRow(day, i)),
+                    IconButton(
+                      tooltip: 'Удалить интервал',
+                      onPressed: busy
+                          ? null
+                          : () => setState(() => hours![day].removeAt(i)),
+                      icon: const Icon(Icons.close, size: 18),
+                    ),
+                  ],
+                ),
+              Align(
+                alignment: Alignment.centerRight,
+                child: TextButton(
+                  onPressed: busy || hours![day].length >= 8
+                      ? null
+                      : () =>
+                            setState(() => hours![day].add(['14:00', '18:00'])),
+                  child: const Text('Добавить интервал'),
+                ),
+              ),
+            ],
+          ],
+          const SizedBox(height: 12),
+          FilledButton(
+            onPressed: busy
+                ? null
+                : () async {
+                    final payload = <String, List<List<String>>>{};
+                    for (var day = 0; day < 7; day++) {
+                      final intervals = enabled[day]
+                          ? hours![day]
+                                .map((v) => List<String>.from(v))
+                                .toList()
+                          : <List<String>>[];
+                      intervals.sort((a, b) => a[0].compareTo(b[0]));
+                      for (var i = 0; i < intervals.length; i++) {
+                        if (intervals[i][0].compareTo(intervals[i][1]) >= 0 ||
+                            (i > 0 &&
+                                intervals[i][0].compareTo(intervals[i - 1][1]) <
+                                    0)) {
+                          showError(
+                            context,
+                            Exception(
+                              '${days[day]}: проверьте время и пересечение интервалов',
+                            ),
+                          );
+                          return;
+                        }
+                      }
+                      payload['$day'] = intervals;
+                    }
+                    setState(() => busy = true);
+                    final ok = await mutate(context, ref, () async {
+                      await ref
+                          .read(apiProvider)
+                          .request(
+                            'me/',
+                            method: 'PATCH',
+                            data: {
+                              'master_profile': {'working_hours': payload},
+                            },
+                          );
+                      await ref.read(authProvider.notifier).reload();
+                    });
+                    if (mounted) {
+                      setState(() => busy = false);
+                      if (ok && context.mounted) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                            content: Text('Рабочий график сохранён'),
+                          ),
+                        );
+                      }
+                    }
+                  },
+            child: Text(busy ? 'Сохраняем…' : 'Сохранить график'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget intervalRow(int day, int interval) => Row(
+    mainAxisAlignment: MainAxisAlignment.center,
+    children: [
+      for (var endpoint = 0; endpoint < 2; endpoint++) ...[
+        if (endpoint == 1) const Text('–'),
+        Expanded(
+          child: TextButton(
+            style: TextButton.styleFrom(
+              minimumSize: const Size(54, 36),
+              padding: const EdgeInsets.symmetric(horizontal: 4),
+            ),
+            onPressed: busy ? null : () => pick(day, interval, endpoint),
+            child: FittedBox(child: Text(hours![day][interval][endpoint])),
           ),
         ),
       ],
-    );
-  }
+    ],
+  );
 }
 
 class MoreScreen extends StatelessWidget {

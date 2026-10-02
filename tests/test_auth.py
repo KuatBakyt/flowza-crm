@@ -29,11 +29,26 @@ def test_email_login_inactive_wrong_password_and_unauthenticated(data):
 
 
 def test_profile_cannot_escalate_and_updates_nested_profile(api,data):
-    r = api.patch('/api/v1/me/',{'role':'ADMIN','master_profile':{'full_name':'Bakyt','is_available':False}},format='json')
+    original = data['masters'][0].full_name
+    for payload in [
+        {'phone': '+77011111111'}, {'email': 'changed@example.com'},
+        {'master_profile': {'full_name': 'Bakyt'}},
+        {'master_profile': {'city': 'Astana'}},
+        {'master_profile': {'districts': []}},
+        {'master_profile': {'timezone': 'UTC'}},
+    ]:
+        assert api.patch('/api/v1/me/', payload, format='json').status_code == 400
+    r = api.patch('/api/v1/me/', {
+        'role': 'ADMIN', 'master_profile': {'is_available': False,
+            'working_hours': {str(day): [['09:00', '19:00']] if day < 5
+                else [['10:00', '16:00']] if day == 5 else [] for day in range(7)}},
+    }, format='json')
     assert r.status_code == 200 and r.data['role'] == 'MASTER'
-    assert r.data['master_profile']['full_name'] == 'Bakyt'
+    assert r.data['master_profile']['full_name'] == original
     assert not r.data['master_profile']['is_available']
-    assert api.patch('/api/v1/me/',{'master_profile':{'districts':'invalid'}},format='json').status_code == 400
+    assert r.data['master_profile']['working_hours']['6'] == []
+    assert api.patch('/api/v1/me/', {'master_profile': {'working_hours': {
+        '0': [['19:00', '09:00']]} }}, format='json').status_code == 400
 
 
 def test_almaty_all_city_catalog(api, data):
