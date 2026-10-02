@@ -207,5 +207,6 @@ docker compose down
 Для staging/production: собственные секреты/пароль БД, DEBUG=false, реальные ALLOWED_HOSTS и CORS,
 резервные копии, reverse proxy Nginx с TLS. Контейнер API слушает только localhost хоста.
 `deploy/nginx.conf.example` — пример прокси; сертификаты и домен задаются на вашем сервере.
+Статика Django admin собирается при сборке Docker image и отдаётся WhiteNoise.
 Если TLS завершается перед Django, настройте trusted proxy прежде чем включать SECURE_SSL_REDIRECT.
 Размещение на сервере и staging HTTPS требуют сервера/домена и не выполнены этим репозиторием.

@@ -21,8 +21,8 @@ jobs:
       DATABASE_URL: postgresql://flowza:test-only@localhost:5432/flowza
       DEBUG: "false"
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@v5
+      - uses: actions/setup-python@v6
         with:
           python-version: "3.12"
           cache: pip
@@ -32,3 +32,12 @@ jobs:
       - run: python manage.py makemigrations --check --dry-run
       - run: python manage.py spectacular --file schema.yaml --validate --fail-on-warn
       - run: python -m pytest
+      - name: Build and smoke-test Docker image
+        run: |
+          docker build -t flowza-ci .
+          docker run --rm --network host -e DATABASE_URL -e DJANGO_SECRET_KEY -e DEMO_PASSWORD=ci-demo-password-123 flowza-ci python manage.py seed_demo
+          docker run -d --name flowza-api --network host -e DATABASE_URL -e DJANGO_SECRET_KEY -e ALLOWED_HOSTS=localhost,127.0.0.1 flowza-ci
+          curl --fail --retry 10 --retry-connrefused --retry-delay 1 http://localhost:8000/api/docs/ > /dev/null
+          curl --fail http://localhost:8000/static/admin/css/base.css > /dev/null
+          docker exec flowza-api python -c "from config.celery import app; app.loader.import_default_modules(); assert 'crm.tasks.send_reminders' in app.tasks"
+          docker stop flowza-api
