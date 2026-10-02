@@ -24,6 +24,10 @@ class MasterDto {
   final String internalRating;
   final int completedOrdersCount;
   final List<Json> skills;
+  @JsonKey(defaultValue: "Asia/Almaty")
+  final String timezone;
+  @JsonKey(defaultValue: <String, dynamic>{})
+  final Json workingHours;
   MasterDto(
     this.id,
     this.fullName,
@@ -32,8 +36,10 @@ class MasterDto {
     this.isAvailable,
     this.internalRating,
     this.completedOrdersCount,
-    this.skills,
-  );
+    this.skills, {
+    this.timezone = "Asia/Almaty",
+    this.workingHours = const {},
+  });
   factory MasterDto.fromJson(Json j) => _$MasterDtoFromJson(j);
   Json toJson() => _$MasterDtoToJson(this);
 }
@@ -61,6 +67,9 @@ class OrderDto {
       source;
   final String? master, estimatedPrice, finalPrice;
   final DateTime startAt, endAt;
+  @JsonKey(defaultValue: "0.00")
+  final String paidAmount;
+  final String? outstandingAmount;
   @JsonKey(defaultValue: <Json>[])
   final List<Json> statusHistory;
   OrderDto(
@@ -78,8 +87,10 @@ class OrderDto {
     this.finalPrice,
     this.startAt,
     this.endAt,
-    this.statusHistory,
-  );
+    this.statusHistory, {
+    this.paidAmount = "0.00",
+    this.outstandingAmount,
+  });
   factory OrderDto.fromJson(Json j) => _$OrderDtoFromJson(j);
   Json toJson() => _$OrderDtoToJson(this);
 }

@@ -67,15 +67,20 @@ def delete_manual_block(block):
 
 
 def free_slots(master_id, date):
-    # MVP working window is 09:00–18:00 UTC. API returns UTC, Flutter converts locally.
-    start = datetime.combine(date,time(9),tzinfo=dt_timezone.utc)
-    end = datetime.combine(date,time(18),tzinfo=dt_timezone.utc)
-    cursor = start
+    from zoneinfo import ZoneInfo
+    master = MasterProfile.objects.get(pk=master_id)
+    if not master.is_available or not master.user.is_active:
+        return []
+    zone = ZoneInfo(master.timezone)
     result = []
-    for block in ScheduleBlock.objects.filter(master_id=master_id,start_at__lt=end,end_at__gt=start).order_by('start_at'):
-        if block.start_at > cursor:
-            result.append({'start_at':cursor,'end_at':min(block.start_at,end)})
-        cursor = max(cursor,block.end_at)
-    if cursor < end:
-        result.append({'start_at':cursor,'end_at':end})
+    for opening, closing in master.working_hours[str(date.weekday())]:
+        start = datetime.combine(date, time.fromisoformat(opening), tzinfo=zone).astimezone(dt_timezone.utc)
+        end = datetime.combine(date, time.fromisoformat(closing), tzinfo=zone).astimezone(dt_timezone.utc)
+        cursor = start
+        for block in ScheduleBlock.objects.filter(master_id=master_id, start_at__lt=end, end_at__gt=start).order_by('start_at'):
+            if block.start_at > cursor:
+                result.append({'start_at': cursor, 'end_at': min(block.start_at, end)})
+            cursor = max(cursor, block.end_at)
+        if cursor < end:
+            result.append({'start_at': cursor, 'end_at': end})
     return result

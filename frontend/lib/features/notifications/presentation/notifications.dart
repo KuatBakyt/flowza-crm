@@ -8,6 +8,7 @@ import 'providers.dart';
 
 final unreadProvider = FutureProvider<int>((ref) async {
   ref.watch(revisionProvider);
+  ref.watch(liveRevisionProvider);
   final j = await ref
       .read(apiProvider)
       .request('notifications/', query: {'is_read': 'false'});

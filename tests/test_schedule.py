@@ -50,3 +50,21 @@ def test_calendar_protection_and_ranges(api,data):
     api.force_authenticate(data['users'][1])
     assert api.get('/api/v1/schedule/').data['count'] == 0
     assert api.post('/api/v1/schedule/check/',{'master_id':str(data['masters'][0].pk),'start_at':data['start'].isoformat(),'end_at':data['end'].isoformat()},format='json').status_code == 400
+
+
+def test_local_working_hours_breaks_weekend_and_timezone(api, data):
+    from datetime import date, datetime, timezone
+    from crm.services.schedule import free_slots
+    master = data['masters'][0]
+    hours = {str(day): [] for day in range(7)}
+    hours['0'] = [['09:00', '13:00'], ['14:00', '18:00']]
+    result = api.patch('/api/v1/me/', {'master_profile': {'timezone': 'Asia/Almaty', 'working_hours': hours}}, format='json')
+    assert result.status_code == 200
+    slots = free_slots(master.pk, date(2026, 10, 5))
+    assert slots == [
+        {'start_at': datetime(2026, 10, 5, 4, tzinfo=timezone.utc), 'end_at': datetime(2026, 10, 5, 8, tzinfo=timezone.utc)},
+        {'start_at': datetime(2026, 10, 5, 9, tzinfo=timezone.utc), 'end_at': datetime(2026, 10, 5, 13, tzinfo=timezone.utc)}]
+    assert free_slots(master.pk, date(2026, 10, 4)) == []
+    hours['0'] = [['09:00', '14:00'], ['13:00', '18:00']]
+    assert api.patch('/api/v1/me/', {'master_profile': {'working_hours': hours}}, format='json').status_code == 400
+    assert api.patch('/api/v1/me/', {'master_profile': {'timezone': 'Invalid/City'}}, format='json').status_code == 400

@@ -4,6 +4,7 @@ from django.conf import settings
 from django.db import models
 from django.core.validators import MinValueValidator, MaxValueValidator
 from accounts.models import normalize_phone
+from .working_hours import default_working_hours, validate_timezone, validate_working_hours
 
 
 class Entity(models.Model):
@@ -20,6 +21,8 @@ class MasterProfile(Entity):
     city = models.CharField(max_length=100, blank=True)
     districts = models.JSONField(default=list)
     is_available = models.BooleanField(default=True)
+    timezone = models.CharField(max_length=100, default="Asia/Almaty", validators=[validate_timezone])
+    working_hours = models.JSONField(default=default_working_hours, validators=[validate_working_hours])
     internal_rating = models.DecimalField(max_digits=3, decimal_places=2, default=0, editable=False)
     completed_orders_count = models.PositiveIntegerField(default=0, editable=False)
 

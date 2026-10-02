@@ -5,6 +5,7 @@ from rest_framework_simplejwt.tokens import RefreshToken
 from accounts.models import User, normalize_phone
 from crm.models import MasterProfile, MasterSpecialization
 from django.db import transaction
+from crm.working_hours import validate_timezone, validate_working_hours
 
 
 class LoginSerializer(serializers.Serializer):
@@ -46,8 +47,14 @@ class MasterSerializer(serializers.ModelSerializer):
     skills = SkillSerializer(many=True,read_only=True)
     class Meta:
         model = MasterProfile
-        fields = ['id','full_name','city','districts','is_available','internal_rating','completed_orders_count','skills']
+        fields = ['id','full_name','city','districts','is_available','timezone','working_hours','internal_rating','completed_orders_count','skills']
         read_only_fields = ['id','internal_rating','completed_orders_count','skills']
+    def validate_timezone(self, value):
+        validate_timezone(value)
+        return value
+    def validate_working_hours(self, value):
+        validate_working_hours(value)
+        return value
     def validate_districts(self,value):
         if not isinstance(value,list) or any(not isinstance(v,str) or len(v)>100 for v in value):
             raise serializers.ValidationError('Ожидается список названий районов')

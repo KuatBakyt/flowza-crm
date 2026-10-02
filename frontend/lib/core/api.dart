@@ -177,6 +177,7 @@ final tokenProvider = Provider<TokenStore>((ref) => SecureTokens());
 final apiProvider = Provider<ApiClient>(
   (ref) => ApiClient(ref.watch(tokenProvider)),
 );
+final liveRevisionProvider = StateProvider<int>((ref) => 0);
 final revisionProvider = StateProvider<int>((ref) => 0);
 void changed(WidgetRef ref) {
   ref.read(revisionProvider.notifier).state++;
@@ -224,9 +225,33 @@ abstract class PagedNotifier<T> extends AsyncNotifier<ApiPage<T>> {
   @override
   Future<ApiPage<T>> build() {
     ref.watch(revisionProvider);
+    ref.listen(liveRevisionProvider, (_, next) => refreshVisible());
     _generation++;
     _busy = false;
     return repository().list(filters(), 1);
+  }
+
+  Future<void> refreshVisible() async {
+    final old = state.valueOrNull;
+    if (old == null || _busy) return;
+    _busy = true;
+    final generation = _generation;
+    try {
+      final items = <T>[];
+      ApiPage<T>? last;
+      for (var page = 1; page <= old.page; page++) {
+        last = await repository().list(filters(), page);
+        items.addAll(last.items);
+        if (!last.hasNext) break;
+      }
+      if (generation == _generation && last != null) {
+        state = AsyncData(ApiPage(items, last.hasNext, last.page));
+      }
+    } catch (_) {
+      // A transient background failure keeps the currently displayed data.
+    } finally {
+      if (generation == _generation) _busy = false;
+    }
   }
 
   Future<void> more() async {

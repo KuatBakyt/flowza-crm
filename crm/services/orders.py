@@ -103,8 +103,15 @@ def complete_order(order, actor):
 @transaction.atomic
 def mark_paid(order, actor, final_price):
     order = locked_order(order,actor)
+    if order.status == 'PAID' and order.final_price == final_price:
+        return order
     if order.status != 'COMPLETED':
         raise ValidationError('Оплатить можно только завершённый заказ')
+    received = payment_balance(order)
+    if received > final_price:
+        raise ValidationError({'final_price': 'Цена меньше уже полученной суммы'})
+    if received < final_price:
+        Payment.objects.create(order=order, amount=final_price-received, type='FULL', status='PAID')
     order.final_price = final_price
     record_status(order,'PAID',actor)
     return order
@@ -143,6 +150,16 @@ def reschedule_order(order, actor, new_start_at, new_end_at):
     return order
 
 
+def payment_balance(order):
+    balance = Decimal('0')
+    for payment in order.payments.all():
+        if payment.type == 'REFUND' and payment.status == 'REFUNDED':
+            balance -= payment.amount
+        elif payment.type != 'REFUND' and payment.status == 'PAID':
+            balance += payment.amount
+    return balance
+
+
 @transaction.atomic
 def record_payment(order, actor, **data):
     order = locked_order(order,actor)
@@ -150,4 +167,12 @@ def record_payment(order, actor, **data):
         raise ValidationError({'status':'Возврат должен иметь статус REFUNDED'})
     if data['type'] != 'REFUND' and data['status'] == 'REFUNDED':
         raise ValidationError({'type':'Для возврата используйте REFUND'})
-    return Payment.objects.create(order=order,**data)
+    balance = payment_balance(order)
+    if data['type'] == 'REFUND' and data['amount'] > balance:
+        raise ValidationError({'amount': 'Возврат превышает полученную сумму'})
+    if data['status'] == 'PAID' and order.final_price is not None and balance+data['amount'] > order.final_price:
+        raise ValidationError({'amount': 'Оплата превышает итоговую цену'})
+    payment = Payment.objects.create(order=order,**data)
+    if data['type'] == 'REFUND' and order.status == 'PAID':
+        record_status(order, 'REFUNDED' if data['amount'] == balance else 'COMPLETED', actor)
+    return payment

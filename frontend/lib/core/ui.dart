@@ -230,6 +230,7 @@ class AsyncBox<T> extends StatelessWidget {
   });
   @override
   Widget build(BuildContext context) => value.when(
+    skipLoadingOnReload: true,
     data: data,
     loading: () => const Padding(
       padding: EdgeInsets.all(40),

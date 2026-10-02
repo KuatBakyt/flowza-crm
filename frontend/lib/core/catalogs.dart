@@ -5,6 +5,7 @@ import 'models.dart';
 
 final clientsCatalog = FutureProvider<List<ClientDto>>((ref) {
   ref.watch(revisionProvider);
+  ref.watch(liveRevisionProvider);
   return ref.read(apiProvider).all('clients/', ClientDto.fromJson);
 });
 final skillsCatalog = FutureProvider<List<Json>>(
@@ -15,6 +16,7 @@ final mastersCatalog = FutureProvider<List<MasterDto>>(
 );
 final orderProvider = FutureProvider.family<OrderDto, String>((ref, id) {
   ref.watch(revisionProvider);
+  ref.watch(liveRevisionProvider);
   return ResourceRepository(
     ref.read(apiProvider),
     'orders/',
@@ -23,6 +25,7 @@ final orderProvider = FutureProvider.family<OrderDto, String>((ref, id) {
 });
 final clientProvider = FutureProvider.family<ClientDto, String>((ref, id) {
   ref.watch(revisionProvider);
+  ref.watch(liveRevisionProvider);
   return ResourceRepository(
     ref.read(apiProvider),
     'clients/',
@@ -32,6 +35,7 @@ final clientProvider = FutureProvider.family<ClientDto, String>((ref, id) {
 final summaryPeriod = StateProvider<String>((ref) => 'week');
 final summaryProvider = FutureProvider<SummaryDto>((ref) async {
   ref.watch(revisionProvider);
+  ref.watch(liveRevisionProvider);
   return SummaryDto.fromJson(
     Json.from(
       await ref

@@ -68,4 +68,40 @@ void main() {
     await container.read(transfersProvider.future);
     expect(server.requests.last['path'], 'transfers/');
   });
+  test(
+    'Background refresh keeps loaded pages and updates external orders',
+    () async {
+      var title = 'Before';
+      final api = ApiClient(
+        MemoryTokens(),
+        adapter: JsonAdapter((o) async {
+          final page = o.queryParameters['page'] as int;
+          return (
+            200,
+            {
+              'count': 2,
+              'next': page == 1 ? 'next' : null,
+              'results': [
+                orderJson()
+                  ..['id'] = 'o$page'
+                  ..['title'] = title,
+              ],
+            },
+          );
+        }),
+      );
+      final container = ProviderContainer(
+        overrides: [apiProvider.overrideWithValue(api)],
+      );
+      addTearDown(container.dispose);
+      await container.read(ordersProvider.future);
+      await container.read(ordersProvider.notifier).more();
+      title = 'From bot';
+      await container.read(ordersProvider.notifier).refreshVisible();
+      final result = container.read(ordersProvider).value!;
+      expect(result.page, 2);
+      expect(result.items.length, 2);
+      expect(result.items.first.title, 'From bot');
+    },
+  );
 }

@@ -77,15 +77,20 @@ void main() {
       'COMPLETED',
     );
     await client.request(
-      'orders/$id/mark-paid/',
-      method: 'POST',
-      data: {'final_price': '45000'},
+      'orders/$id/payments/', method: 'POST',
+      data: {'amount': '10000', 'type': 'PREPAYMENT', 'status': 'PAID'},
     );
-    await client.request(
-      'orders/$id/payments/',
-      method: 'POST',
-      data: {'amount': '45000', 'type': 'FULL', 'status': 'PAID'},
-    );
+    for (var attempt = 0; attempt < 2; attempt++) {
+      await client.request(
+        'orders/$id/mark-paid/', method: 'POST',
+        data: {'final_price': '45000'},
+      );
+    }
+    final payments = await client.all('orders/$id/payments/', (j) => j);
+    expect(payments.length, 2);
+    final paidOrder = OrderDto.fromJson(Json.from(await client.request('orders/$id/') as Map));
+    expect(paidOrder.paidAmount, '45000.00');
+    expect(paidOrder.outstandingAmount, '0.00');
     expect((await client.request('dashboard/summary/'))['revenue'], '45000.00');
     final later = start.add(const Duration(days: 1));
     final other = await client.request(

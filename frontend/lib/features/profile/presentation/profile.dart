@@ -172,11 +172,13 @@ class _ProfileForm extends ConsumerState<ProfileFormScreen> {
       phone = TextEditingController(),
       email = TextEditingController(),
       city = TextEditingController(),
-      districts = TextEditingController();
+      districts = TextEditingController(),
+      timezone = TextEditingController();
+  final hours = List.generate(7, (_) => TextEditingController());
   bool loaded = false, busy = false;
   @override
   void dispose() {
-    for (final c in [name, phone, email, city, districts]) {
+    for (final c in [name, phone, email, city, districts, timezone, ...hours]) {
       c.dispose();
     }
     super.dispose();
@@ -192,6 +194,13 @@ class _ProfileForm extends ConsumerState<ProfileFormScreen> {
       email.text = u.email ?? '';
       city.text = u.profile?.city ?? '';
       districts.text = u.profile?.districts.join(', ') ?? '';
+      timezone.text = u.profile?.timezone ?? 'Asia/Almaty';
+      for (var day = 0; day < 7; day++) {
+        final intervals = u.profile?.workingHours['$day'] as List?;
+        hours[day].text = intervals == null
+            ? '09:00-18:00'
+            : intervals.map((v) => (v as List).join('-')).join(', ');
+      }
       loaded = true;
     }
     return PageBody(
@@ -239,6 +248,48 @@ class _ProfileForm extends ConsumerState<ProfileFormScreen> {
                     ),
                   ),
                 ],
+                if (u.profile != null) ...[
+                  const SizedBox(height: 16),
+                  TextFormField(
+                    controller: timezone,
+                    decoration: const InputDecoration(
+                      labelText: 'Часовой пояс (например Asia/Almaty)',
+                    ),
+                    validator: (v) => v == null || v.trim().isEmpty
+                        ? 'Укажите часовой пояс'
+                        : null,
+                  ),
+                  const SizedBox(height: 16),
+                  const Text(
+                    'Рабочие часы. Пустое поле — выходной. Для перерыва: 09:00-13:00, 14:00-18:00',
+                  ),
+                  for (var day = 0; day < 7; day++)
+                    TextFormField(
+                      controller: hours[day],
+                      decoration: InputDecoration(
+                        labelText: const [
+                          'Понедельник',
+                          'Вторник',
+                          'Среда',
+                          'Четверг',
+                          'Пятница',
+                          'Суббота',
+                          'Воскресенье',
+                        ][day],
+                      ),
+                      validator: (v) {
+                        if (v == null || v.trim().isEmpty) return null;
+                        for (final interval in v.split(',')) {
+                          if (!RegExp(
+                            r'^([01]\d|2[0-3]):[0-5]\d-([01]\d|2[0-3]):[0-5]\d$',
+                          ).hasMatch(interval.trim())) {
+                            return 'Формат: 09:00-13:00, 14:00-18:00';
+                          }
+                        }
+                        return null;
+                      },
+                    ),
+                ],
                 const SizedBox(height: 24),
                 FilledButton(
                   onPressed: busy
@@ -261,6 +312,20 @@ class _ProfileForm extends ConsumerState<ProfileFormScreen> {
                                       'master_profile': {
                                         'full_name': name.text.trim(),
                                         'city': city.text.trim(),
+                                        'timezone': timezone.text.trim(),
+                                        'working_hours': {
+                                          for (var day = 0; day < 7; day++)
+                                            '$day':
+                                                hours[day].text.trim().isEmpty
+                                                ? <List<String>>[]
+                                                : hours[day].text
+                                                      .split(',')
+                                                      .map(
+                                                        (v) =>
+                                                            v.trim().split('-'),
+                                                      )
+                                                      .toList(),
+                                        },
                                         'districts': districts.text
                                             .split(',')
                                             .map((s) => s.trim())

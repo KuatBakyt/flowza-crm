@@ -91,4 +91,21 @@ void main() {
       expect(t.takeException(), isNull);
     });
   }
+  testWidgets('Live refresh pauses in background and resumes immediately', (
+    t,
+  ) async {
+    final c = await boot(t, FixtureServer());
+    addTearDown(c.dispose);
+    final initial = c.read(liveRevisionProvider);
+    await t.pump(const Duration(seconds: 30));
+    expect(c.read(liveRevisionProvider), initial + 1);
+    t.binding.handleAppLifecycleStateChanged(AppLifecycleState.paused);
+    await t.pump(const Duration(seconds: 60));
+    expect(c.read(liveRevisionProvider), initial + 1);
+    t.binding.handleAppLifecycleStateChanged(AppLifecycleState.resumed);
+    await t.pumpAndSettle();
+    expect(c.read(liveRevisionProvider), initial + 2);
+    await t.pumpWidget(const SizedBox.shrink());
+    await t.pumpAndSettle();
+  });
 }

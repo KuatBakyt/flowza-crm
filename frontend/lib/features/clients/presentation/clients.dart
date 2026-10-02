@@ -68,6 +68,7 @@ final clientOrdersProvider = FutureProvider.family<List<OrderDto>, String>((
   id,
 ) {
   ref.watch(revisionProvider);
+  ref.watch(liveRevisionProvider);
   return ref.read(apiProvider).all('clients/$id/orders/', OrderDto.fromJson);
 });
 

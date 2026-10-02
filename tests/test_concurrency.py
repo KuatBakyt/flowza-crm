@@ -62,3 +62,26 @@ def test_parallel_accept_one_winner(data):
     assert Transfer.objects.filter(order=data['order'],status='ACCEPTED').count() == 1
     assert Transfer.objects.filter(order=data['order'],status='EXPIRED').count() == 1
     assert ScheduleBlock.objects.filter(order=data['order']).count() == 1
+
+
+def test_parallel_mark_paid_does_not_duplicate(data):
+    from decimal import Decimal
+    from crm.models import Payment
+    Order.objects.filter(pk=data['order'].pk).update(status='COMPLETED')
+    result = parallel(lambda: orders.mark_paid(data['order'], data['users'][0], Decimal('1000')),
+                      lambda: orders.mark_paid(data['order'], data['users'][0], Decimal('1000')))
+    assert result == ['ok', 'ok']
+    assert Payment.objects.filter(order=data['order']).count() == 1
+
+
+def test_bot_retry_parallel_creates_one_order(data):
+    import uuid
+    from flowza_bot_api.views import submit
+    from flowza_bot_api.models import BotOrderReceipt
+    body = {'request_id': str(uuid.uuid4()), 'client': {'name': 'Bot', 'phone': '+77012345678', 'external_id': 'telegram:42'},
+            'order': {'specialization': str(data['spec'].pk), 'title': 'Repair', 'address': 'Almaty',
+                      'start_at': data['start'].isoformat(), 'end_at': data['end'].isoformat()}}
+    result = parallel(lambda: submit(data['users'][0], body), lambda: submit(data['users'][0], body))
+    assert result == ['ok', 'ok']
+    assert Order.objects.filter(source='BOT').count() == 1
+    assert BotOrderReceipt.objects.count() == 1

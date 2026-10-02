@@ -17,6 +17,7 @@ final calendarWeek = StateProvider<bool>((ref) => false);
 final calendarMaster = StateProvider<String?>((ref) => null);
 final scheduleProvider = FutureProvider<List<BlockDto>>((ref) {
   ref.watch(revisionProvider);
+  ref.watch(liveRevisionProvider);
   final d = ref.watch(calendarDate), week = ref.watch(calendarWeek);
   final from = week ? d.subtract(Duration(days: d.weekday - 1)) : d;
   return ref

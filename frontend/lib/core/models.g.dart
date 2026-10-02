@@ -35,6 +35,8 @@ MasterDto _$MasterDtoFromJson(Map<String, dynamic> json) => MasterDto(
   (json['skills'] as List<dynamic>)
       .map((e) => e as Map<String, dynamic>)
       .toList(),
+  timezone: json['timezone'] as String? ?? 'Asia/Almaty',
+  workingHours: json['working_hours'] as Map<String, dynamic>? ?? {},
 );
 
 Map<String, dynamic> _$MasterDtoToJson(MasterDto instance) => <String, dynamic>{
@@ -46,6 +48,8 @@ Map<String, dynamic> _$MasterDtoToJson(MasterDto instance) => <String, dynamic>{
   'internal_rating': instance.internalRating,
   'completed_orders_count': instance.completedOrdersCount,
   'skills': instance.skills,
+  'timezone': instance.timezone,
+  'working_hours': instance.workingHours,
 };
 
 ClientDto _$ClientDtoFromJson(Map<String, dynamic> json) => ClientDto(
@@ -83,6 +87,8 @@ OrderDto _$OrderDtoFromJson(Map<String, dynamic> json) => OrderDto(
           ?.map((e) => e as Map<String, dynamic>)
           .toList() ??
       [],
+  paidAmount: json['paid_amount'] as String? ?? '0.00',
+  outstandingAmount: json['outstanding_amount'] as String?,
 );
 
 Map<String, dynamic> _$OrderDtoToJson(OrderDto instance) => <String, dynamic>{
@@ -100,6 +106,8 @@ Map<String, dynamic> _$OrderDtoToJson(OrderDto instance) => <String, dynamic>{
   'final_price': instance.finalPrice,
   'start_at': instance.startAt.toIso8601String(),
   'end_at': instance.endAt.toIso8601String(),
+  'paid_amount': instance.paidAmount,
+  'outstanding_amount': instance.outstandingAmount,
   'status_history': instance.statusHistory,
 };
 

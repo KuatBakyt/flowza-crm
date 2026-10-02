@@ -39,12 +39,21 @@ class HistorySerializer(serializers.ModelSerializer):
 
 class OrderSerializer(StrictModelSerializer):
     status_history = HistorySerializer(many=True,read_only=True)
+    paid_amount = serializers.SerializerMethodField()
+    outstanding_amount = serializers.SerializerMethodField()
+    def get_paid_amount(self, obj) -> str:
+        from crm.services.orders import payment_balance
+        return format(payment_balance(obj), '.2f')
+    def get_outstanding_amount(self, obj) -> str | None:
+        from crm.services.orders import payment_balance
+        price = obj.final_price if obj.final_price is not None else obj.estimated_price
+        return format(max(price-payment_balance(obj), 0), '.2f') if price is not None else None
     class Meta:
         model = Order
         fields = ['id','client','master','specialization','title','description','address','district',
             'start_at','end_at','estimated_price','final_price','status','source','cancellation_reason',
-            'created_at','updated_at','status_history']
-        read_only_fields = ['id','status','final_price','cancellation_reason','created_at','updated_at','status_history']
+            'created_at','updated_at','status_history','paid_amount','outstanding_amount']
+        read_only_fields = ['id','status','final_price','cancellation_reason','created_at','updated_at','status_history','paid_amount','outstanding_amount']
         extra_kwargs = {'master':{'required':False,'allow_null':True}}
     def __init__(self,*args,**kwargs):
         super().__init__(*args,**kwargs)

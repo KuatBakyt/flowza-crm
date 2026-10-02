@@ -11,6 +11,7 @@ import '../../orders/presentation/orders.dart';
 
 final todayProvider = FutureProvider<List<OrderDto>>((ref) {
   ref.watch(revisionProvider);
+  ref.watch(liveRevisionProvider);
   final n = DateTime.now(), d = DateTime(n.year, n.month, n.day);
   return ref
       .read(apiProvider)
@@ -31,6 +32,7 @@ final todayProvider = FutureProvider<List<OrderDto>>((ref) {
 
 final dashboardSummaryProvider = FutureProvider<SummaryDto>((ref) async {
   ref.watch(revisionProvider);
+  ref.watch(liveRevisionProvider);
   return SummaryDto.fromJson(
     Json.from(
       await ref

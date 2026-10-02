@@ -9,11 +9,13 @@ import '../../../core/catalogs.dart';
 
 final paymentsProvider = FutureProvider.family<List<Json>, String>((ref, id) {
   ref.watch(revisionProvider);
+  ref.watch(liveRevisionProvider);
   return ref.read(apiProvider).all('orders/$id/payments/', (j) => j);
 });
 final historyTransfersProvider =
     FutureProvider.family<List<TransferDto>, String>((ref, id) {
       ref.watch(revisionProvider);
+      ref.watch(liveRevisionProvider);
       return ref
           .read(apiProvider)
           .all('orders/$id/transfers/', TransferDto.fromJson);
@@ -126,6 +128,9 @@ class _Detail extends ConsumerState<OrderDetailScreen> {
                       money(o.finalPrice ?? o.estimatedPrice),
                       style: Theme.of(context).textTheme.headlineMedium,
                     ),
+                    Text("Получено: ${money(o.paidAmount)}"),
+                    if (o.outstandingAmount != null)
+                      Text("Осталось: ${money(o.outstandingAmount)}"),
                   ],
                 ),
               ),

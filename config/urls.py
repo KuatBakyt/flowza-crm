@@ -13,6 +13,7 @@ for prefix,view,basename in [
     ('specializations',SpecializationViewSet,'specialization'),('masters',MasterViewSet,'master'),('reviews',ReviewViewSet,'review')]:
     router.register(prefix,view,basename=basename)
 urlpatterns = [path('admin/',admin.site.urls),
+    path('api/v1/bot/',include('flowza_bot_api.urls')),
     path('api/v1/auth/login/',LoginView.as_view()),path('api/v1/auth/refresh/',TokenRefreshView.as_view()),
     path('api/v1/auth/logout/',LogoutView.as_view()),path('api/v1/me/',MeView.as_view()),
     path('api/v1/dashboard/summary/',DashboardView.as_view()),path('api/v1/',include(router.urls)),

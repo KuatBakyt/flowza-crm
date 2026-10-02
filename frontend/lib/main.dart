@@ -3,6 +3,7 @@ import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'core/router.dart';
+import 'core/live_refresh.dart';
 import 'core/ui.dart';
 
 void main() {
@@ -21,5 +22,7 @@ class FlowzaApp extends ConsumerWidget {
     supportedLocales: const [Locale('ru')],
     localizationsDelegates: GlobalMaterialLocalizations.delegates,
     routerConfig: ref.watch(routerProvider),
+    builder: (context, child) =>
+        LiveRefresh(child: child ?? const SizedBox.shrink()),
   );
 }

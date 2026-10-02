@@ -46,7 +46,7 @@ class OrderViewSet(mixins.ListModelMixin,mixins.CreateModelMixin,mixins.Retrieve
     def get_queryset(self):
         if getattr(self,'swagger_fake_view',False):
             return Order.objects.none()
-        return orders_for(self.request.user).prefetch_related('status_history')
+        return orders_for(self.request.user).prefetch_related('status_history','payments')
     def perform_create(self,serializer):
         serializer.instance = orders.create_order(self.request.user,**serializer.validated_data)
     def perform_update(self,serializer):
