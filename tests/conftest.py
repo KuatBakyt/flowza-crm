@@ -15,7 +15,7 @@ def data(db):
     for m in masters:
         MasterSpecialization.objects.create(master=m,specialization=spec)
     client = Client.objects.create(created_by=users[0],phone='+77771112233',name='Client')
-    start = timezone.now()+timedelta(days=2)
+    start = (timezone.now()+timedelta(days=2)).replace(hour=6, minute=0, second=0, microsecond=0)
     end = start+timedelta(hours=1)
     order = Order.objects.create(client=client,master=masters[0],specialization=spec,title='Fix tap',district='Bostandyk',start_at=start,end_at=end)
     admin = User.objects.create_superuser('+77000000009','admin-pass-123')

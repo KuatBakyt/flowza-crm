@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../core/api.dart';
+import '../../../core/appointment_check.dart';
 import '../../../core/models.dart';
 import '../../../core/ui.dart';
 import '../../../core/catalogs.dart';
@@ -63,16 +64,15 @@ class _OrderForm extends ConsumerState<OrderFormScreen> {
       if (!active) {
         final m = u!.admin ? master : u.profile?.id;
         if (m != null) {
-          final check = await api.request(
-            'schedule/check/',
-            method: 'POST',
-            data: {'master_id': m, 'start_at': iso(start), 'end_at': iso(end)},
-          );
-          if (check['available'] != true) {
-            throw const AppFailure(
-              code: 'schedule_conflict',
-              message: 'Время уже занято. Выберите другой интервал.',
-            );
+          if (!await checkAppointment(
+            context,
+            api,
+            m,
+            start,
+            end,
+            excludeOrder: o?.id,
+          )) {
+            return;
           }
         }
       }

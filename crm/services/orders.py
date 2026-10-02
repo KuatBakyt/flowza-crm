@@ -5,7 +5,7 @@ from django.utils import timezone
 from rest_framework.exceptions import ValidationError, NotFound
 from crm.models import Order, OrderStatusHistory, ScheduleBlock, Transfer, MasterProfile, MasterSpecialization, Payment
 from .access import ensure_order_access
-from .schedule import lock_masters, validate_interval, create_order_block
+from .schedule import lock_masters, validate_interval, create_order_block, require_available
 from .notifications import create_notification
 
 ACTIVE = {'CONFIRMED','IN_PROGRESS'}
@@ -45,6 +45,9 @@ def expire_offers(order):
 def create_order(actor, **data):
     validate_interval(data['start_at'],data['end_at'])
     validate_master(data.get('master'),data['specialization'])
+    if data.get('master'):
+        lock_masters(data['master'].pk)
+        require_available(data['master'].pk, data['start_at'], data['end_at'])
     order = Order.objects.create(**data)
     OrderStatusHistory.objects.create(order=order,actor=actor,to_status='NEW')
     if order.master_id and order.source != 'BOT':
@@ -62,6 +65,12 @@ def edit_order(order, actor, data):
         raise ValidationError('Для изменения времени используйте reschedule')
     validate_interval(data.get('start_at',order.start_at),data.get('end_at',order.end_at))
     validate_master(data.get('master',order.master),data.get('specialization',order.specialization))
+    if {'start_at', 'end_at', 'master'} & data.keys():
+        master = data.get('master', order.master)
+        if master:
+            lock_masters(master.pk)
+            require_available(master.pk, data.get('start_at', order.start_at),
+                data.get('end_at', order.end_at), exclude_order=order.pk)
     if {'start_at','end_at','master','specialization','district'} & data.keys():
         expire_offers(order)
     for key,value in data.items():
@@ -151,6 +160,7 @@ def reschedule_order(order, actor, new_start_at, new_end_at):
         raise ValidationError({'new_start_at':'Нельзя перенести заказ в прошлое'})
     if order.master_id:
         lock_masters(order.master_id)
+        require_available(order.master_id, new_start_at, new_end_at, exclude_order=order.pk)
     order.start_at,order.end_at = new_start_at,new_end_at
     if order.status in ACTIVE:
         create_order_block(order)

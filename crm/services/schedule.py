@@ -84,3 +84,26 @@ def free_slots(master_id, date):
         if cursor < end:
             result.append({'start_at': cursor, 'end_at': end})
     return result
+
+
+def within_working_hours(master, start_at, end_at):
+    """The entire interval must fit continuous working windows in local time."""
+    from zoneinfo import ZoneInfo
+    validate_interval(start_at, end_at)
+    zone = ZoneInfo(master.timezone)
+    day = start_at.astimezone(zone).date()
+    last_day = end_at.astimezone(zone).date()
+    # Bound iteration for malformed/unreasonably long appointments.
+    if (last_day - day).days > 366:
+        return False
+    cursor = start_at
+    while day <= last_day:
+        for opening, closing in master.working_hours[str(day.weekday())]:
+            opening = datetime.combine(day, time.fromisoformat(opening), tzinfo=zone).astimezone(dt_timezone.utc)
+            closing = datetime.combine(day, time.fromisoformat(closing), tzinfo=zone).astimezone(dt_timezone.utc)
+            if opening <= cursor < closing:
+                cursor = min(closing, end_at)
+                if cursor == end_at:
+                    return True
+        day += timedelta(days=1)
+    return False

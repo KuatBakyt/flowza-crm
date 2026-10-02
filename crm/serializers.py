@@ -171,6 +171,7 @@ class PaidSerializer(StrictSerializer):
 
 
 class CheckSerializer(StrictSerializer):
+    exclude_order = serializers.PrimaryKeyRelatedField(queryset=Order.objects.all(), required=False)
     master_id = serializers.PrimaryKeyRelatedField(queryset=MasterProfile.objects.all(),required=False)
     start_at = serializers.DateTimeField()
     end_at = serializers.DateTimeField()
@@ -182,12 +183,19 @@ class CheckSerializer(StrictSerializer):
             data['master_id'] = profile(user)
         elif not data.get('master_id'):
             raise serializers.ValidationError({'master_id':'Обязательное поле'})
+        order = data.get('exclude_order')
+        if order:
+            from crm.services.access import ensure_order_access
+            ensure_order_access(order, user)
+            if order.master_id != data['master_id'].pk:
+                raise serializers.ValidationError({'exclude_order': 'Другой мастер заказа'})
         validate_interval(data['start_at'],data['end_at'])
         return data
 
 
 class AvailableSerializer(serializers.Serializer):
     available = serializers.BooleanField()
+    within_working_hours = serializers.BooleanField()
 
 
 class SlotSerializer(serializers.Serializer):

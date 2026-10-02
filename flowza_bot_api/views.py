@@ -18,7 +18,7 @@ from crm.serializers import StrictSerializer, StrictModelSerializer
 from crm.services.access import profile
 from crm.services.notifications import create_notification
 from crm.services.orders import create_order
-from crm.services.schedule import lock_masters, require_available, validate_interval
+from crm.services.schedule import lock_masters, require_available, validate_interval, within_working_hours
 
 
 class BotClientInput(StrictSerializer):
@@ -83,6 +83,8 @@ def submit(actor, raw):
     if not timezone.now() < data['order']['start_at'] <= timezone.now() + timedelta(days=365):
         raise ValidationError({'start_at': 'Выберите время в будущем в пределах 365 дней'})
     require_available(master.pk, data['order']['start_at'], data['order']['end_at'])
+    if not within_working_hours(master, data['order']['start_at'], data['order']['end_at']):
+        raise Conflict('Выберите время внутри рабочего графика мастера', code='outside_working_hours')
     customer = data['client']
     client = Client.objects.filter(created_by=actor, external_id=customer['external_id']).first()
     if client is None:

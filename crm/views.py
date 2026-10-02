@@ -132,7 +132,9 @@ class ScheduleViewSet(mixins.ListModelMixin,viewsets.GenericViewSet):
     @action(detail=False,methods=['post'])
     def check(self,request):
         d = validate(self,CheckSerializer)
-        return Response({'available':schedule.check_availability(d['master_id'].pk,d['start_at'],d['end_at'])})
+        return Response({'available':schedule.check_availability(d['master_id'].pk,d['start_at'],d['end_at'],
+            exclude_order=d['exclude_order'].pk if d.get('exclude_order') else None),
+            'within_working_hours':schedule.within_working_hours(d['master_id'],d['start_at'],d['end_at'])})
     @extend_schema(parameters=[OpenApiParameter('date',type={'type':'string','format':'date'},required=True),OpenApiParameter('master_id',type={'type':'string','format':'uuid'})],responses=SlotSerializer(many=True))
     @action(detail=False,methods=['get'],url_path='free-slots')
     def free_slots(self,request):

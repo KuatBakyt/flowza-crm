@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../core/api.dart';
+import '../../../core/appointment_check.dart';
 import '../../../core/models.dart';
 import '../../../core/ui.dart';
 import '../../../core/catalogs.dart';
@@ -50,6 +51,23 @@ class _Detail extends ConsumerState<OrderDetailScreen> {
       builder: (c) => OrderActionDialog(mode, o),
     );
     if (body == null || !mounted) return;
+    if (mode == 'reschedule' && o.master != null) {
+      try {
+        if (!await checkAppointment(
+          context,
+          ref.read(apiProvider),
+          o.master!,
+          DateTime.parse(body['new_start_at'] as String),
+          DateTime.parse(body['new_end_at'] as String),
+          excludeOrder: o.id,
+        )) {
+          return;
+        }
+      } catch (e) {
+        if (mounted) showError(context, e);
+        return;
+      }
+    }
     await action(mode, body);
   }
 
