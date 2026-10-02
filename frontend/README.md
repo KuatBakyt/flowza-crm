@@ -57,7 +57,7 @@ DTO генерируются `json_serializable`, ошибки — `freezed`. С
 python tool/live_smoke.py
 ```
 
-Скрипт создаёт временную SQLite БД, применяет миграции, запускает тестовый API и проверяет Flutter API-клиент: login → create → confirm → calendar → complete → payment → automatic transfer → refresh → logout. Переменная `FLUTTER_BIN` задаёт путь к Flutter при необходимости. В GitHub Actions используется отдельный PostgreSQL 16, тестовый пароль не является паролем приложения.
+Скрипт создаёт временную SQLite БД, применяет миграции, запускает тестовый API и проверяет Flutter API-клиент: login → create → confirm → calendar → complete → payment → automatic transfer → refresh → logout. Переменная `FLUTTER_BIN` задаёт путь к Flutter при необходимости. В GitHub Actions используется отдельный PostgreSQL 16, тестовый пароль не является паролем приложения. Обычная переменная `DATABASE_URL` игнорируется, чтобы не затронуть рабочую БД. Для отдельной тестовой PostgreSQL задайте `FLOWZA_SMOKE_DATABASE_URL`.
 
 ## Сборки
 

@@ -4,7 +4,7 @@ root = pathlib.Path(__file__).resolve().parents[2]
 frontend = root / 'frontend'
 with tempfile.TemporaryDirectory(prefix='flowza-smoke-') as tmp:
     env = dict(os.environ, DJANGO_SECRET_KEY='integration-test-only-secret-32-characters', DEBUG='true', ALLOWED_HOSTS='localhost,127.0.0.1', DEMO_PASSWORD='integration-test-password')
-    env.setdefault('DATABASE_URL', 'sqlite:///' + tmp + '/db.sqlite3')
+    env['DATABASE_URL'] = os.environ.get('FLOWZA_SMOKE_DATABASE_URL', 'sqlite:///' + tmp + '/db.sqlite3')
     subprocess.run(['python', 'manage.py', 'migrate', '--noinput'], cwd=root, env=env, check=True, stdout=subprocess.DEVNULL)
     subprocess.run(['python', 'manage.py', 'seed_demo'], cwd=root, env=env, check=True)
     with open(pathlib.Path(tmp) / 'server.log', 'w') as log:
