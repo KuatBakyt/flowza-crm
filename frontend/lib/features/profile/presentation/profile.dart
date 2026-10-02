@@ -108,9 +108,7 @@ class _Profile extends ConsumerState<ProfileScreen> {
                 Info(Icons.location_city_outlined, m.city),
                 Info(
                   Icons.place_outlined,
-                  m.districts.isEmpty
-                      ? 'Районы не указаны'
-                      : m.districts.join(', '),
+                  m.districts.isEmpty ? 'Весь город' : m.districts.join(', '),
                 ),
                 const Divider(),
                 ListTile(
@@ -245,6 +243,8 @@ class _ProfileForm extends ConsumerState<ProfileFormScreen> {
                     controller: districts,
                     decoration: const InputDecoration(
                       labelText: 'Районы через запятую',
+                      helperText:
+                          'Оставьте пустым, чтобы работать по всему городу',
                     ),
                   ),
                 ],

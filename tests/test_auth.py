@@ -34,3 +34,14 @@ def test_profile_cannot_escalate_and_updates_nested_profile(api,data):
     assert r.data['master_profile']['full_name'] == 'Bakyt'
     assert not r.data['master_profile']['is_available']
     assert api.patch('/api/v1/me/',{'master_profile':{'districts':'invalid'}},format='json').status_code == 400
+
+
+def test_almaty_all_city_catalog(api, data):
+    from django.core.management import call_command
+    from crm.locations import ALMATY_DISTRICTS
+    call_command('configure_almaty', phone=data['users'][0].phone)
+    data['users'][0].refresh_from_db()
+    profile = api.get('/api/v1/me/').data['master_profile']
+    assert profile['districts'] == []
+    assert profile['service_districts'] == ALMATY_DISTRICTS
+    assert len(profile['service_districts']) == 8

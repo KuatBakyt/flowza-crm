@@ -45,9 +45,13 @@ class SkillSerializer(serializers.ModelSerializer):
 
 class MasterSerializer(serializers.ModelSerializer):
     skills = SkillSerializer(many=True,read_only=True)
+    service_districts = serializers.SerializerMethodField()
+    def get_service_districts(self, obj) -> list[str]:
+        from crm.locations import service_districts
+        return service_districts(obj)
     class Meta:
         model = MasterProfile
-        fields = ['id','full_name','city','districts','is_available','timezone','working_hours','internal_rating','completed_orders_count','skills']
+        fields = ['id','full_name','city','districts','is_available','timezone','working_hours','service_districts','internal_rating','completed_orders_count','skills']
         read_only_fields = ['id','internal_rating','completed_orders_count','skills']
     def validate_timezone(self, value):
         validate_timezone(value)

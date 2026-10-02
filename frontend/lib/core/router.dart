@@ -27,13 +27,33 @@ final routerProvider = Provider<GoRouter>((ref) {
     refreshListenable: refresh,
     redirect: (c, s) {
       final auth = ref.read(authProvider);
+      final target = s.uri.queryParameters['next'] ?? s.uri.toString();
       if (auth.isLoading || auth.hasError) {
-        return s.matchedLocation == '/splash' ? null : '/splash';
+        return s.matchedLocation == '/splash'
+            ? null
+            : Uri(
+                path: '/splash',
+                queryParameters: {'next': target},
+              ).toString();
       }
       if (auth.valueOrNull == null) {
-        return s.matchedLocation == '/login' ? null : '/login';
+        return s.matchedLocation == '/login'
+            ? null
+            : Uri(path: '/login', queryParameters: {'next': target}).toString();
       }
-      if (['/login', '/splash'].contains(s.matchedLocation)) return '/';
+      if (['/login', '/splash'].contains(s.matchedLocation)) {
+        final next = s.uri.queryParameters['next'];
+        final uri = next == null ? null : Uri.tryParse(next);
+        if (uri != null &&
+            !uri.hasScheme &&
+            !uri.hasAuthority &&
+            next!.startsWith('/') &&
+            !next.startsWith('//') &&
+            !['/login', '/splash'].contains(uri.path)) {
+          return next;
+        }
+        return '/';
+      }
       return null;
     },
     routes: [

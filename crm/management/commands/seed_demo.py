@@ -28,7 +28,7 @@ class Command(BaseCommand):
             user = User.objects.filter(phone=phone).first()
             if not user:
                 user = User.objects.create_user(phone,password,email=f'demo{i}@flowza.test')
-            master,_ = MasterProfile.objects.get_or_create(user=user,defaults={'full_name':name,'city':'Алматы','districts':['Бостандыкский']})
+            master,_ = MasterProfile.objects.get_or_create(user=user,defaults={'full_name':name,'city':'Алматы','districts':[]})
             MasterSpecialization.objects.get_or_create(master=master,specialization=spec)
             masters.append(master)
         client,_ = Client.objects.get_or_create(created_by=masters[0].user,phone='+77771112233',defaults={'name':'Демо клиент'})

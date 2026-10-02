@@ -47,6 +47,9 @@ def create_order(actor, **data):
     validate_master(data.get('master'),data['specialization'])
     order = Order.objects.create(**data)
     OrderStatusHistory.objects.create(order=order,actor=actor,to_status='NEW')
+    if order.master_id and order.source != 'BOT':
+        create_notification(order.master.user, 'ORDER_NEW', 'Новая заявка', body=order.title,
+                            payload={'order_id': str(order.pk)}, dedup_key=f'new-order:{order.pk}')
     return order
 
 

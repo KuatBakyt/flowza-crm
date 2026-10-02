@@ -5,6 +5,7 @@ import 'package:intl/date_symbol_data_local.dart';
 import 'package:flowza/main.dart';
 import 'package:flowza/core/api.dart';
 import 'package:flowza/core/router.dart';
+import 'package:flowza/features/auth/presentation/auth.dart';
 
 import 'helpers.dart';
 
@@ -107,5 +108,19 @@ void main() {
     expect(c.read(liveRevisionProvider), initial + 2);
     await t.pumpWidget(const SizedBox.shrink());
     await t.pumpAndSettle();
+  });
+  testWidgets('Order link is restored after sign-in', (t) async {
+    final c = await boot(t, FixtureServer(), signed: false);
+    addTearDown(c.dispose);
+    c.read(routerProvider).go('/orders/o1');
+    await t.pumpAndSettle();
+    expect(find.text('Войти'), findsWidgets);
+    final login = c
+        .read(authProvider.notifier)
+        .login('+77000000000', 'password');
+    await t.pumpAndSettle();
+    await login;
+    await t.pumpAndSettle();
+    expect(find.text('Карточка заказа'), findsOneWidget);
   });
 }
