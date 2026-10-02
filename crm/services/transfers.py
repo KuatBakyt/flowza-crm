@@ -5,7 +5,7 @@ from rest_framework.exceptions import ValidationError, NotFound
 from crm.models import Order, Transfer, MasterProfile, ScheduleBlock, OrderStatusHistory
 from crm.errors import Conflict
 from .access import ensure_order_access, is_admin, profile
-from .orders import locked_order, validate_master, record_status
+from .orders import locked_order_by_id, locked_order, validate_master, record_status
 from .schedule import lock_masters, check_availability, create_order_block
 from .notifications import create_notification
 
@@ -45,7 +45,7 @@ def offer(order, actor, reason=''):
 @transaction.atomic
 def accept(transfer, actor):
     # All order services lock order first, then master rows in UUID order.
-    order = Order.objects.select_for_update().get(pk=transfer.order_id)
+    order = locked_order_by_id(transfer.order_id)
     transfer = Transfer.objects.select_for_update().get(pk=transfer.pk)
     if not is_admin(actor) and transfer.to_master_id != profile(actor).pk:
         raise NotFound()
@@ -76,7 +76,7 @@ def accept(transfer, actor):
 
 @transaction.atomic
 def decline(transfer, actor):
-    Order.objects.select_for_update().get(pk=transfer.order_id)
+    locked_order_by_id(transfer.order_id)
     transfer = Transfer.objects.select_for_update().get(pk=transfer.pk)
     if not is_admin(actor) and transfer.to_master_id != profile(actor).pk:
         raise NotFound()

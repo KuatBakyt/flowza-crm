@@ -7,7 +7,7 @@ class BotOrderReceipt(Entity):
     actor = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.PROTECT)
     request_id = models.UUIDField()
     fingerprint = models.CharField(max_length=64)
-    order = models.ForeignKey(Order, on_delete=models.PROTECT)
+    order = models.ForeignKey(Order, on_delete=models.SET_NULL, null=True)
     response = models.JSONField()
 
     class Meta(Entity.Meta):

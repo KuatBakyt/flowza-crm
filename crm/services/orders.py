@@ -2,7 +2,7 @@ from decimal import Decimal
 from django.db import transaction
 from django.db.models import F
 from django.utils import timezone
-from rest_framework.exceptions import ValidationError
+from rest_framework.exceptions import ValidationError, NotFound
 from crm.models import Order, OrderStatusHistory, ScheduleBlock, Transfer, MasterProfile, MasterSpecialization, Payment
 from .access import ensure_order_access
 from .schedule import lock_masters, validate_interval, create_order_block
@@ -24,8 +24,15 @@ def record_status(order, status, actor, note=''):
     OrderStatusHistory.objects.create(order=order,actor=actor,from_status=old,to_status=status,note=note)
 
 
+def locked_order_by_id(order_id):
+    try:
+        return Order.objects.select_for_update().get(pk=order_id)
+    except Order.DoesNotExist:
+        raise NotFound("Заявка удалена или недоступна")
+
+
 def locked_order(order, actor):
-    order = Order.objects.select_for_update().get(pk=order.pk)
+    order = locked_order_by_id(order.pk)
     ensure_order_access(order,actor)
     return order
 

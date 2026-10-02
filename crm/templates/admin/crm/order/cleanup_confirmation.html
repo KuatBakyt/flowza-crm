@@ -1,0 +1,20 @@
+{% extends "admin/base_site.html" %}
+{% block content %}
+<p>Удаление необратимо. Вместе с заявками будут удалены их история статусов, блоки календаря, передачи и связанные уведомления. Клиенты сохранятся.</p>
+<p>Повторная отправка старого запроса бота не создаст удалённую заявку заново.</p>
+{% if protected %}
+<p><strong>Удаление недоступно. В выборке есть защищённые заявки:</strong></p>
+<ul>{% for order in protected %}<li>{{ order.title }} — {{ order.get_status_display }} ({{ order.pk }})</li>{% endfor %}</ul>
+<p>Выберите только новые, ожидающие или отменённые заявки без платежей и оценок.</p>
+{% else %}
+<ul>{% for order in orders %}<li>{{ order.title }} — {{ order.get_status_display }} ({{ order.pk }})</li>{% endfor %}</ul>
+<form method="post">{% csrf_token %}
+{% for order in orders %}<input type="hidden" name="{{ action_checkbox_name }}" value="{{ order.pk }}">{% endfor %}
+<input type="hidden" name="action" value="cleanup_selected">
+<input type="hidden" name="confirm_cleanup" value="yes">
+<input type="hidden" name="select_across" value="0">
+<input type="submit" value="Да, удалить выбранные заявки">
+</form>
+{% endif %}
+<p><a href="{% url 'admin:crm_order_changelist' %}">Отмена — вернуться к заявкам</a></p>
+{% endblock %}
