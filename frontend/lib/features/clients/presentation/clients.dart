@@ -1,3 +1,5 @@
+import '../../../core/l10n.dart';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -13,15 +15,15 @@ class ClientsScreen extends ConsumerWidget {
   const ClientsScreen({super.key});
   @override
   Widget build(BuildContext context, WidgetRef ref) => PageBody(
-    'Клиенты',
+    tr(context, "Клиенты"),
     action: IconButton(
       onPressed: () => context.push('/clients/new'),
       icon: const Icon(Icons.person_add_alt, color: blue),
     ),
     children: [
       TextField(
-        decoration: const InputDecoration(
-          hintText: 'Поиск клиента…',
+        decoration: InputDecoration(
+          hintText: tr(context, "Поиск клиента…"),
           prefixIcon: Icon(Icons.search),
         ),
         onSubmitted: (v) => ref.read(clientsFilter.notifier).state =
@@ -31,7 +33,7 @@ class ClientsScreen extends ConsumerWidget {
         value: ref.watch(clientsProvider),
         retry: () => ref.invalidate(clientsProvider),
         data: (p) => p.items.isEmpty
-            ? const Empty('Клиентов пока нет')
+            ? Empty(tr(context, "Клиентов пока нет"))
             : Column(
                 children: [
                   Surface(
@@ -57,7 +59,7 @@ class ClientsScreen extends ConsumerWidget {
       FilledButton.icon(
         onPressed: () => context.push('/clients/new'),
         icon: const Icon(Icons.add),
-        label: const Text('Добавить клиента'),
+        label: Text(tr(context, "Добавить клиента")),
       ),
     ],
   );
@@ -77,7 +79,7 @@ class ClientDetailScreen extends ConsumerWidget {
   const ClientDetailScreen(this.id, {super.key});
   @override
   Widget build(BuildContext context, WidgetRef ref) => PageBody(
-    'Клиент',
+    tr(context, "Клиент"),
     action: IconButton(
       onPressed: () => context.push('/clients/$id/edit'),
       icon: const Icon(Icons.edit_outlined),
@@ -104,14 +106,17 @@ class ClientDetailScreen extends ConsumerWidget {
               ),
               const SizedBox(height: 16),
               Info(Icons.phone_outlined, c.phone),
-              Info(Icons.source_outlined, 'Источник: ${c.source}'),
+              Info(
+                Icons.source_outlined,
+                tr(context, "Источник: {0}", [c.source]),
+              ),
               const Divider(),
-              const Text(
-                'Заметки',
+              Text(
+                tr(context, "Заметки"),
                 style: TextStyle(fontWeight: FontWeight.w700),
               ),
               const SizedBox(height: 8),
-              Text(c.notes.isEmpty ? 'Нет заметок' : c.notes),
+              Text(c.notes.isEmpty ? tr(context, "Нет заметок") : c.notes),
             ],
           ),
         ),
@@ -119,14 +124,17 @@ class ClientDetailScreen extends ConsumerWidget {
       FilledButton.icon(
         onPressed: () => context.push('/orders/new?client=$id'),
         icon: const Icon(Icons.add),
-        label: const Text('Добавить заказ'),
+        label: Text(tr(context, "Добавить заказ")),
       ),
-      Text('История заказов', style: Theme.of(context).textTheme.titleLarge),
+      Text(
+        tr(context, "История заказов"),
+        style: Theme.of(context).textTheme.titleLarge,
+      ),
       AsyncBox(
         value: ref.watch(clientOrdersProvider(id)),
         retry: () => ref.invalidate(clientOrdersProvider(id)),
         data: (orders) => orders.isEmpty
-            ? const Empty('Заказов ещё нет')
+            ? Empty(tr(context, "Заказов ещё нет"))
             : Column(
                 children: [
                   for (final o in orders)
@@ -206,30 +214,31 @@ class _ClientForm extends ConsumerState<ClientFormScreen> {
         children: [
           TextFormField(
             controller: name,
-            decoration: const InputDecoration(labelText: 'Имя'),
+            decoration: InputDecoration(labelText: tr(context, "Имя")),
           ),
           const SizedBox(height: 16),
           TextFormField(
             controller: phone,
             keyboardType: TextInputType.phone,
-            decoration: const InputDecoration(labelText: 'Телефон *'),
-            validator: (v) =>
-                v == null || v.trim().isEmpty ? 'Введите телефон' : null,
+            decoration: InputDecoration(labelText: tr(context, "Телефон *")),
+            validator: (v) => v == null || v.trim().isEmpty
+                ? tr(context, "Введите телефон")
+                : null,
           ),
           const SizedBox(height: 16),
           DropdownButtonFormField<String>(
             initialValue: source,
-            decoration: const InputDecoration(labelText: 'Источник'),
+            decoration: InputDecoration(labelText: tr(context, "Источник")),
             items: [
               for (final s in ['MANUAL', 'BOT', 'TRANSFER', 'OTHER'])
                 DropdownMenuItem(
                   value: s,
                   child: Text(
                     {
-                      'MANUAL': 'Вручную',
-                      'BOT': 'Бот',
-                      'TRANSFER': 'Передача',
-                      'OTHER': 'Другое',
+                      'MANUAL': tr(context, "Вручную"),
+                      'BOT': tr(context, "Бот"),
+                      'TRANSFER': tr(context, "Передача"),
+                      'OTHER': tr(context, "Другое"),
                     }[s]!,
                   ),
                 ),
@@ -240,14 +249,16 @@ class _ClientForm extends ConsumerState<ClientFormScreen> {
           TextFormField(
             controller: notes,
             maxLines: 4,
-            decoration: const InputDecoration(labelText: 'Заметки'),
+            decoration: InputDecoration(labelText: tr(context, "Заметки")),
           ),
           const SizedBox(height: 24),
           SizedBox(
             width: double.infinity,
             child: FilledButton(
               onPressed: busy ? null : save,
-              child: Text(busy ? 'Сохраняем…' : 'Сохранить'),
+              child: Text(
+                busy ? tr(context, "Сохраняем…") : tr(context, "Сохранить"),
+              ),
             ),
           ),
         ],
@@ -257,7 +268,9 @@ class _ClientForm extends ConsumerState<ClientFormScreen> {
 
   @override
   Widget build(BuildContext context) => PageBody(
-    widget.id == null ? 'Добавить клиента' : 'Редактировать клиента',
+    widget.id == null
+        ? tr(context, "Добавить клиента")
+        : tr(context, "Редактировать клиента"),
     children: [
       Surface(
         child: widget.id == null

@@ -1,3 +1,5 @@
+import '../../../core/l10n.dart';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:dio/dio.dart';
@@ -58,6 +60,8 @@ class _Login extends ConsumerState<LoginScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
+                const LanguageSelector(),
+                const SizedBox(height: 16),
                 const Icon(Icons.layers_rounded, color: blue, size: 48),
                 const SizedBox(height: 20),
                 Text(
@@ -65,8 +69,8 @@ class _Login extends ConsumerState<LoginScreen> {
                   style: Theme.of(context).textTheme.headlineMedium,
                 ),
                 const SizedBox(height: 8),
-                const Text(
-                  'Заказы, клиенты и расписание —\nв одном месте.',
+                Text(
+                  tr(context, "Заказы, клиенты и расписание —\nв одном месте."),
                   style: TextStyle(
                     color: Color(0xFF78869C),
                     fontSize: 16,
@@ -81,18 +85,18 @@ class _Login extends ConsumerState<LoginScreen> {
                       crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: [
                         Text(
-                          'Вход в CRM',
+                          tr(context, "Вход в CRM"),
                           style: Theme.of(context).textTheme.titleLarge,
                         ),
                         const SizedBox(height: 24),
                         TextFormField(
                           controller: identity,
-                          decoration: const InputDecoration(
-                            labelText: 'Телефон или email',
+                          decoration: InputDecoration(
+                            labelText: tr(context, "Телефон или email"),
                           ),
                           autofillHints: const [AutofillHints.username],
                           validator: (s) => s == null || s.trim().isEmpty
-                              ? 'Введите телефон или email'
+                              ? tr(context, "Введите телефон или email")
                               : null,
                         ),
                         const SizedBox(height: 16),
@@ -101,7 +105,7 @@ class _Login extends ConsumerState<LoginScreen> {
                           obscureText: hidden,
                           autofillHints: const [AutofillHints.password],
                           decoration: InputDecoration(
-                            labelText: 'Пароль',
+                            labelText: tr(context, "Пароль"),
                             suffixIcon: IconButton(
                               onPressed: () => setState(() => hidden = !hidden),
                               icon: Icon(
@@ -111,8 +115,9 @@ class _Login extends ConsumerState<LoginScreen> {
                               ),
                             ),
                           ),
-                          validator: (s) =>
-                              s == null || s.isEmpty ? 'Введите пароль' : null,
+                          validator: (s) => s == null || s.isEmpty
+                              ? tr(context, "Введите пароль")
+                              : null,
                           onFieldSubmitted: (_) {
                             if (!busy) submit();
                           },
@@ -128,15 +133,19 @@ class _Login extends ConsumerState<LoginScreen> {
                         const SizedBox(height: 24),
                         FilledButton(
                           onPressed: busy ? null : submit,
-                          child: Text(busy ? 'Входим…' : 'Войти'),
+                          child: Text(
+                            busy
+                                ? tr(context, "Входим…")
+                                : tr(context, "Войти"),
+                          ),
                         ),
                       ],
                     ),
                   ),
                 ),
                 const SizedBox(height: 20),
-                const Text(
-                  'Доступ выдаёт администратор вашей команды.',
+                Text(
+                  tr(context, "Доступ выдаёт администратор вашей команды."),
                   style: TextStyle(color: Color(0xFF78869C), fontSize: 12),
                 ),
               ],

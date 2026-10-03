@@ -1,3 +1,6 @@
+import 'translations.dart';
+import 'l10n.dart';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -68,9 +71,10 @@ ThemeData crmTheme() => ThemeData(
   dividerTheme: const DividerThemeData(color: Color(0xFFE8EDF5)),
 );
 String money(Object? value) => value == null
-    ? 'Не указана'
-    : '${NumberFormat.decimalPattern('ru').format(num.tryParse(value.toString()) ?? 0)} ₸';
-String when(DateTime d) => DateFormat('d MMM, HH:mm', 'ru').format(d.toLocal());
+    ? translate(Intl.defaultLocale ?? 'ru', 'Не указана')
+    : '${NumberFormat.decimalPattern(Intl.defaultLocale ?? 'ru').format(num.tryParse(value.toString()) ?? 0)} ₸';
+String when(DateTime d) =>
+    DateFormat('d MMM, HH:mm', Intl.defaultLocale ?? 'ru').format(d.toLocal());
 String clock(DateTime d) => DateFormat('HH:mm').format(d.toLocal());
 String iso(DateTime d) => d.toUtc().toIso8601String();
 const statuses = {
@@ -109,7 +113,7 @@ class StatusBadge extends StatelessWidget {
         borderRadius: BorderRadius.circular(6),
       ),
       child: Text(
-        statuses[status] ?? status,
+        tr(context, statuses[status] ?? status),
         style: TextStyle(color: c, fontSize: 12, fontWeight: FontWeight.w600),
       ),
     );
@@ -239,9 +243,12 @@ class AsyncBox<T> extends StatelessWidget {
     error: (e, s) => Surface(
       child: Column(
         children: [
-          Text(e.toString(), textAlign: TextAlign.center),
+          Text(errorText(context, e), textAlign: TextAlign.center),
           const SizedBox(height: 12),
-          OutlinedButton(onPressed: retry, child: const Text('Повторить')),
+          OutlinedButton(
+            onPressed: retry,
+            child: Text(tr(context, "Повторить")),
+          ),
         ],
       ),
     ),
@@ -271,16 +278,38 @@ class _MoreState extends ConsumerState<MoreButton> {
               if (mounted) setState(() => busy = false);
             }
           },
-    child: Text(busy ? 'Загрузка…' : 'Показать ещё'),
+    child: Text(busy ? tr(context, "Загрузка…") : tr(context, "Показать ещё")),
   );
 }
 
+String errorText(BuildContext context, Object error) {
+  final raw = error is AppFailure ? error.message : error.toString();
+  final known =
+      translations.containsKey(raw) ||
+      translations.values.any((values) => values.containsValue(raw));
+  final locale = Localizations.localeOf(context).languageCode;
+  final message = known
+      ? tr(context, raw)
+      : locale == 'ru'
+      ? raw
+      : tr(context, 'Проверьте введённые данные');
+  if (error is! AppFailure || error.fields.isEmpty) return message;
+  return '$message\n${error.fields.entries.map((entry) {
+    final value = entry.value is List ? (entry.value as List).join('; ') : entry.value.toString();
+    return '${entry.key}: ${translations.containsKey(value)
+        ? tr(context, value)
+        : locale == 'ru'
+        ? value
+        : tr(context, 'Проверьте введённые данные')}';
+  }).join('\n')}';
+}
+
 void showError(BuildContext context, Object e) {
-  final text = e is AppFailure && e.fields.isNotEmpty
-      ? '${e.message}\n${e.fields.entries.map((v) => '${v.key}: ${v.value}').join('\n')}'
-      : e.toString();
   ScaffoldMessenger.of(context).showSnackBar(
-    SnackBar(content: Text(text), backgroundColor: const Color(0xFFB63F47)),
+    SnackBar(
+      content: Text(errorText(context, e)),
+      backgroundColor: const Color(0xFFB63F47),
+    ),
   );
 }
 
@@ -295,7 +324,7 @@ Future<bool> mutate(
     changed(ref);
     if (context.mounted) {
       ScaffoldMessenger.of(context)
-          .showSnackBar(SnackBar(content: Text(message)));
+          .showSnackBar(SnackBar(content: Text(tr(context, message))));
     }
     return true;
   } catch (e) {
@@ -329,6 +358,8 @@ class Avatar extends StatelessWidget {
   Widget build(BuildContext context) => CircleAvatar(
     backgroundColor: const Color(0xFFDEEAFF),
     foregroundColor: blue,
-    child: Text(name.isEmpty ? 'М' : name.substring(0, 1).toUpperCase()),
+    child: Text(
+      name.isEmpty ? tr(context, "М") : name.substring(0, 1).toUpperCase(),
+    ),
   );
 }

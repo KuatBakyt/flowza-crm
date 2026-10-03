@@ -1,3 +1,5 @@
+import '../../../core/l10n.dart';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -29,7 +31,7 @@ class OrderCard extends ConsumerWidget {
             ),
             const SizedBox(height: 14),
             Text(
-              client?.label ?? 'Клиент',
+              client?.label ?? tr(context, "Клиент"),
               style: Theme.of(context).textTheme.titleLarge,
             ),
             const SizedBox(height: 4),
@@ -86,7 +88,7 @@ class _Orders extends ConsumerState<OrdersScreen> {
   Widget build(BuildContext context) {
     final q = ref.watch(ordersFilter);
     return PageBody(
-      'Заказы',
+      tr(context, "Заказы"),
       action: IconButton(
         onPressed: () => context.push('/orders/new'),
         icon: const Icon(Icons.add_circle_outline, color: blue),
@@ -95,7 +97,7 @@ class _Orders extends ConsumerState<OrdersScreen> {
         TextField(
           controller: search,
           decoration: InputDecoration(
-            hintText: 'Клиент, телефон или услуга',
+            hintText: tr(context, "Клиент, телефон или услуга"),
             prefixIcon: const Icon(Icons.search),
             suffixIcon: IconButton(
               onPressed: () => filter('search', search.text.trim()),
@@ -108,20 +110,21 @@ class _Orders extends ConsumerState<OrdersScreen> {
           scrollDirection: Axis.horizontal,
           child: Row(
             children: [
-              for (final entry in {'': 'Все', ...statuses}.entries.where(
-                (e) =>
-                    e.key == '' ||
-                    ![
-                      'OFFERED',
-                      'ACCEPTED',
-                      'DECLINED',
-                      'EXPIRED',
-                    ].contains(e.key),
-              ))
+              for (final entry
+                  in {'': tr(context, "Все"), ...statuses}.entries.where(
+                    (e) =>
+                        e.key == '' ||
+                        ![
+                          'OFFERED',
+                          'ACCEPTED',
+                          'DECLINED',
+                          'EXPIRED',
+                        ].contains(e.key),
+                  ))
                 Padding(
                   padding: const EdgeInsets.only(right: 8),
                   child: ChoiceChip(
-                    label: Text(entry.value),
+                    label: Text(tr(context, entry.value)),
                     selected: (q['status'] ?? '') == entry.key,
                     onSelected: (_) => filter('status', entry.key),
                   ),
@@ -155,8 +158,8 @@ class _Orders extends ConsumerState<OrdersScreen> {
                 icon: const Icon(Icons.calendar_today_outlined, size: 18),
                 label: Text(
                   q.containsKey('date_from')
-                      ? 'Дата выбрана'
-                      : 'Фильтр по дате',
+                      ? tr(context, "Дата выбрана")
+                      : tr(context, "Фильтр по дате"),
                 ),
               ),
             ),
@@ -174,9 +177,9 @@ class _Orders extends ConsumerState<OrdersScreen> {
           value: ref.watch(ordersProvider),
           retry: () => ref.invalidate(ordersProvider),
           data: (p) => p.items.isEmpty
-              ? const Empty(
-                  'Заказов пока нет',
-                  body: 'Добавьте заказ или измените фильтры.',
+              ? Empty(
+                  tr(context, "Заказов пока нет"),
+                  body: tr(context, "Добавьте заказ или измените фильтры."),
                 )
               : Column(
                   children: [

@@ -1,3 +1,5 @@
+import '../../../core/l10n.dart';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -19,12 +21,12 @@ class _Transfers extends ConsumerState<TransfersScreen> {
   String? busy;
   @override
   Widget build(BuildContext context) => PageBody(
-    'Предложения заказов',
+    tr(context, "Предложения заказов"),
     children: [
       SegmentedButton<bool>(
-        segments: const [
-          ButtonSegment(value: false, label: Text('Входящие')),
-          ButtonSegment(value: true, label: Text('История')),
+        segments: [
+          ButtonSegment(value: false, label: Text(tr(context, "Входящие"))),
+          ButtonSegment(value: true, label: Text(tr(context, "История"))),
         ],
         selected: {ref.watch(transfersFilter)['history'] == true},
         onSelectionChanged: (v) {
@@ -38,8 +40,13 @@ class _Transfers extends ConsumerState<TransfersScreen> {
         retry: () => ref.invalidate(transfersProvider),
         data: (p) => p.items.isEmpty
             ? Empty(
-                history ? 'Передач пока нет' : 'Нет входящих предложений',
-                body: 'Система подбирает заказы по специализации и свободному времени.',
+                history
+                    ? tr(context, "Передач пока нет")
+                    : tr(context, "Нет входящих предложений"),
+                body: tr(
+                  context,
+                  "Система подбирает заказы по специализации и свободному времени.",
+                ),
               )
             : Column(
                 children: [
@@ -93,7 +100,7 @@ class _Transfers extends ConsumerState<TransfersScreen> {
                                       onPressed: busy != null
                                           ? null
                                           : () => respond(t, 'accept'),
-                                      child: const Text('Принять'),
+                                      child: Text(tr(context, "Принять")),
                                     ),
                                   ),
                                   const SizedBox(width: 12),
@@ -102,7 +109,7 @@ class _Transfers extends ConsumerState<TransfersScreen> {
                                       onPressed: busy != null
                                           ? null
                                           : () => respond(t, 'decline'),
-                                      child: const Text('Не могу'),
+                                      child: Text(tr(context, "Не могу")),
                                     ),
                                   ),
                                 ],
@@ -120,7 +127,7 @@ class _Transfers extends ConsumerState<TransfersScreen> {
                               TextButton(
                                 onPressed: () =>
                                     context.push('/orders/${t.order}'),
-                                child: const Text('Открыть заказ'),
+                                child: Text(tr(context, "Открыть заказ")),
                               ),
                           ],
                         ),
@@ -144,8 +151,8 @@ class _Transfers extends ConsumerState<TransfersScreen> {
             .request('transfers/${t.id}/$action/', method: 'POST', data: {});
       },
       message: action == 'accept'
-          ? 'Заказ принят, время забронировано'
-          : 'Предложение отклонено',
+          ? tr(context, "Заказ принят, время забронировано")
+          : tr(context, "Предложение отклонено"),
     );
     if (mounted) setState(() => busy = null);
   }
@@ -170,7 +177,7 @@ class _Offer extends ConsumerState<OfferScreen> {
 
   @override
   Widget build(BuildContext context) => PageBody(
-    'Передача заказа',
+    tr(context, "Передача заказа"),
     children: [
       Surface(
         child: Column(
@@ -183,15 +190,23 @@ class _Offer extends ConsumerState<OfferScreen> {
             ),
             const SizedBox(height: 20),
             Text(
-              sent ? 'Предложение отправлено' : 'Не можете выполнить заказ?',
+              sent
+                  ? tr(context, "Предложение отправлено")
+                  : tr(context, "Не можете выполнить заказ?"),
               textAlign: TextAlign.center,
               style: Theme.of(context).textTheme.titleLarge,
             ),
             const SizedBox(height: 12),
             Text(
               sent
-                  ? 'Заказ будет передан после принятия новым мастером. Следите за статусом в истории передач.'
-                  : 'Система автоматически подберёт свободного мастера с нужной специализацией. Учитываются район, рейтинг и нагрузка.',
+                  ? tr(
+                      context,
+                      "Заказ будет передан после принятия новым мастером. Следите за статусом в истории передач.",
+                    )
+                  : tr(
+                      context,
+                      "Система автоматически подберёт свободного мастера с нужной специализацией. Учитываются район, рейтинг и нагрузка.",
+                    ),
               textAlign: TextAlign.center,
               style: const TextStyle(color: Color(0xFF78869C), height: 1.5),
             ),
@@ -200,8 +215,8 @@ class _Offer extends ConsumerState<OfferScreen> {
               DropdownButtonFormField<String>(
                 initialValue: reason,
                 isExpanded: true,
-                decoration: const InputDecoration(
-                  labelText: 'Причина передачи',
+                decoration: InputDecoration(
+                  labelText: tr(context, "Причина передачи"),
                 ),
                 items: [
                   for (final r in [
@@ -210,7 +225,7 @@ class _Offer extends ConsumerState<OfferScreen> {
                     'Не моя специализация',
                     'Другое',
                   ])
-                    DropdownMenuItem(value: r, child: Text(r)),
+                    DropdownMenuItem(value: r, child: Text(tr(context, r))),
                 ],
                 onChanged: (v) => reason = v!,
               ),
@@ -218,7 +233,9 @@ class _Offer extends ConsumerState<OfferScreen> {
               TextField(
                 controller: comment,
                 maxLength: 150,
-                decoration: const InputDecoration(labelText: 'Комментарий'),
+                decoration: InputDecoration(
+                  labelText: tr(context, "Комментарий"),
+                ),
               ),
               const SizedBox(height: 24),
               FilledButton(
@@ -241,7 +258,10 @@ class _Offer extends ConsumerState<OfferScreen> {
                                   },
                                 );
                           },
-                          message: 'Система отправила предложение подходящему мастеру',
+                          message: tr(
+                            context,
+                            "Система отправила предложение подходящему мастеру",
+                          ),
                         );
                         if (mounted) {
                           setState(() {
@@ -250,12 +270,16 @@ class _Offer extends ConsumerState<OfferScreen> {
                           });
                         }
                       },
-                child: Text(busy ? 'Подбираем мастера…' : 'Передать в систему'),
+                child: Text(
+                  busy
+                      ? tr(context, "Подбираем мастера…")
+                      : tr(context, "Передать в систему"),
+                ),
               ),
             ] else
               FilledButton(
                 onPressed: () => context.go('/orders/${widget.id}'),
-                child: const Text('К заказу'),
+                child: Text(tr(context, "К заказу")),
               ),
           ],
         ),

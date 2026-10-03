@@ -1,3 +1,5 @@
+import '../../../core/l10n.dart';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -78,14 +80,16 @@ class DashboardScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final u = ref.watch(authProvider).valueOrNull;
     return PageBody(
-      'Привет, ${u?.name.split(' ').first ?? 'мастер'}!',
+      tr(context, "Привет, {0}!", [
+        u?.name.split(' ').first ?? tr(context, 'мастер'),
+      ]),
       action: IconButton(
         onPressed: () => context.push('/notifications'),
         icon: const Icon(Icons.notifications_outlined),
       ),
       children: [
-        const Text(
-          'Ваш рабочий день под контролем',
+        Text(
+          tr(context, "Ваш рабочий день под контролем"),
           style: TextStyle(color: Color(0xFF78869C)),
         ),
         AsyncBox(
@@ -98,17 +102,17 @@ class DashboardScreen extends ConsumerWidget {
               children: [
                 for (final w in [
                   Metric(
-                    'Новые',
+                    tr(context, "Новые"),
                     s.newOrders.toString(),
                     const Color(0xFFFFEEDB),
                   ),
                   Metric(
-                    'В работе',
+                    tr(context, "В работе"),
                     s.active.toString(),
                     const Color(0xFFDCF5EB),
                   ),
                   Metric(
-                    'Доход за неделю',
+                    tr(context, "Доход за неделю"),
                     money(s.revenue),
                     const Color(0xFFE2EBFF),
                   ),
@@ -126,15 +130,19 @@ class DashboardScreen extends ConsumerWidget {
         FilledButton.icon(
           onPressed: () => context.push('/orders/new'),
           icon: const Icon(Icons.add),
-          label: const Text('Добавить заказ'),
+          label: Text(tr(context, "Добавить заказ")),
         ),
         Row(
           children: [
-            Text('Сегодня', style: Theme.of(context).textTheme.titleLarge),
-            const Spacer(),
+            Expanded(
+              child: Text(
+                tr(context, "Сегодня"),
+                style: Theme.of(context).textTheme.titleLarge,
+              ),
+            ),
             TextButton(
               onPressed: () => context.go('/orders'),
-              child: const Text('Все заказы'),
+              child: Text(tr(context, "Все заказы")),
             ),
           ],
         ),
@@ -142,9 +150,12 @@ class DashboardScreen extends ConsumerWidget {
           value: ref.watch(todayProvider),
           retry: () => ref.invalidate(todayProvider),
           data: (orders) => orders.isEmpty
-              ? const Empty(
-                  'На сегодня заказов нет',
-                  body: 'Свободное время можно отметить в календаре.',
+              ? Empty(
+                  tr(context, "На сегодня заказов нет"),
+                  body: tr(
+                    context,
+                    "Свободное время можно отметить в календаре.",
+                  ),
                 )
               : Column(
                   children: [
@@ -161,14 +172,14 @@ class DashboardScreen extends ConsumerWidget {
             children: [
               ListTile(
                 leading: const Icon(Icons.swap_horiz, color: blue),
-                title: const Text('Входящие предложения'),
-                subtitle: const Text('Заказы, подобранные системой'),
+                title: Text(tr(context, "Входящие предложения")),
+                subtitle: Text(tr(context, "Заказы, подобранные системой")),
                 trailing: const Icon(Icons.chevron_right),
                 onTap: () => context.push('/transfers'),
               ),
               ListTile(
                 leading: const Icon(Icons.people_outline, color: blue),
-                title: const Text('Клиенты'),
+                title: Text(tr(context, "Клиенты")),
                 trailing: const Icon(Icons.chevron_right),
                 onTap: () => context.push('/clients'),
               ),
@@ -184,15 +195,21 @@ class StatisticsScreen extends ConsumerWidget {
   const StatisticsScreen({super.key});
   @override
   Widget build(BuildContext context, WidgetRef ref) => PageBody(
-    'Статистика',
+    tr(context, "Статистика"),
     children: [
       DropdownButtonFormField<String>(
         initialValue: ref.watch(summaryPeriod),
-        decoration: const InputDecoration(labelText: 'Период'),
-        items: const [
-          DropdownMenuItem(value: 'day', child: Text('За день')),
-          DropdownMenuItem(value: 'week', child: Text('За неделю')),
-          DropdownMenuItem(value: 'month', child: Text('За 30 дней')),
+        decoration: InputDecoration(labelText: tr(context, "Период")),
+        items: [
+          DropdownMenuItem(value: 'day', child: Text(tr(context, "За день"))),
+          DropdownMenuItem(
+            value: 'week',
+            child: Text(tr(context, "За неделю")),
+          ),
+          DropdownMenuItem(
+            value: 'month',
+            child: Text(tr(context, "За 30 дней")),
+          ),
         ],
         onChanged: (v) => ref.read(summaryPeriod.notifier).state = v!,
       ),
@@ -202,7 +219,7 @@ class StatisticsScreen extends ConsumerWidget {
         data: (s) => Column(
           children: [
             Metric(
-              'Доход по платежам',
+              tr(context, "Доход по платежам"),
               money(s.revenue),
               const Color(0xFFDCF5EB),
             ),
@@ -210,11 +227,26 @@ class StatisticsScreen extends ConsumerWidget {
             Surface(
               child: Column(
                 children: [
-                  Info(Icons.check_circle_outline, 'Выполнено: ${s.completed}'),
-                  Info(Icons.work_outline, 'Активных заказов: ${s.active}'),
-                  Info(Icons.fiber_new_outlined, 'Новых: ${s.newOrders}'),
-                  Info(Icons.cancel_outlined, 'Отменено: ${s.cancelled}'),
-                  Info(Icons.swap_horiz, 'Передано: ${s.transferred}'),
+                  Info(
+                    Icons.check_circle_outline,
+                    tr(context, "Выполнено: {0}", [s.completed]),
+                  ),
+                  Info(
+                    Icons.work_outline,
+                    tr(context, "Активных заказов: {0}", [s.active]),
+                  ),
+                  Info(
+                    Icons.fiber_new_outlined,
+                    tr(context, "Новых: {0}", [s.newOrders]),
+                  ),
+                  Info(
+                    Icons.cancel_outlined,
+                    tr(context, "Отменено: {0}", [s.cancelled]),
+                  ),
+                  Info(
+                    Icons.swap_horiz,
+                    tr(context, "Передано: {0}", [s.transferred]),
+                  ),
                 ],
               ),
             ),

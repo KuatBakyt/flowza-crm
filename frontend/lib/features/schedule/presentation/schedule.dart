@@ -1,3 +1,5 @@
+import '../../../core/l10n.dart';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -42,7 +44,7 @@ class ScheduleScreen extends ConsumerWidget {
         admin = ref.watch(authProvider).valueOrNull?.admin == true;
     final start = week ? d.subtract(Duration(days: d.weekday - 1)) : d;
     return PageBody(
-      'Календарь',
+      tr(context, "Календарь"),
       action: IconButton(
         onPressed: () => context.push(
           '/schedule/new?start=${Uri.encodeComponent(iso(d.add(const Duration(hours: 9))))}',
@@ -70,7 +72,12 @@ class ScheduleScreen extends ConsumerWidget {
                     ref.read(calendarDate.notifier).state = value;
                   }
                 },
-                child: Text(DateFormat('d MMMM yyyy', 'ru').format(d)),
+                child: Text(
+                  DateFormat(
+                    'd MMMM yyyy',
+                    Localizations.localeOf(context).languageCode,
+                  ).format(d),
+                ),
               ),
             ),
             IconButton(
@@ -82,15 +89,15 @@ class ScheduleScreen extends ConsumerWidget {
           ],
         ),
         SegmentedButton<bool>(
-          segments: const [
+          segments: [
             ButtonSegment(
               value: false,
-              label: Text('День'),
+              label: Text(tr(context, "День")),
               icon: Icon(Icons.view_day_outlined),
             ),
             ButtonSegment(
               value: true,
-              label: Text('Неделя'),
+              label: Text(tr(context, "Неделя")),
               icon: Icon(Icons.view_week_outlined),
             ),
           ],
@@ -105,9 +112,12 @@ class ScheduleScreen extends ConsumerWidget {
             data: (list) => DropdownButtonFormField<String>(
               initialValue: master,
               isExpanded: true,
-              decoration: const InputDecoration(labelText: 'Мастер'),
+              decoration: InputDecoration(labelText: tr(context, "Мастер")),
               items: [
-                const DropdownMenuItem(value: null, child: Text('Все мастера')),
+                DropdownMenuItem(
+                  value: null,
+                  child: Text(tr(context, "Все мастера")),
+                ),
                 for (final m in list)
                   DropdownMenuItem(value: m.id, child: Text(m.fullName)),
               ],
@@ -134,7 +144,7 @@ class ScheduleScreen extends ConsumerWidget {
                           Text(
                             DateFormat(
                               'EEEE, d MMMM',
-                              'ru',
+                              Localizations.localeOf(context).languageCode,
                             ).format(start.add(Duration(days: day))),
                             style: Theme.of(context).textTheme.titleMedium,
                           ),
@@ -159,10 +169,10 @@ class ScheduleScreen extends ConsumerWidget {
                                   start.add(Duration(days: day)),
                                 ),
                           ))
-                            const Padding(
+                            Padding(
                               padding: EdgeInsets.symmetric(vertical: 16),
                               child: Text(
-                                'Нет занятости',
+                                tr(context, "Нет занятости"),
                                 style: TextStyle(color: Color(0xFF78869C)),
                               ),
                             ),
@@ -171,7 +181,7 @@ class ScheduleScreen extends ConsumerWidget {
                               '/schedule/new?start=${Uri.encodeComponent(iso(start.add(Duration(days: day, hours: 9))))}',
                             ),
                             icon: const Icon(Icons.add, size: 18),
-                            label: const Text('Добавить занятость'),
+                            label: Text(tr(context, "Добавить занятость")),
                           ),
                         ],
                       ),
@@ -195,7 +205,7 @@ class ScheduleScreen extends ConsumerWidget {
                   await showDialog<void>(
                     context: context,
                     builder: (c) => AlertDialog(
-                      title: const Text('Свободные интервалы'),
+                      title: Text(tr(context, "Свободные интервалы")),
                       content: SingleChildScrollView(
                         child: Column(
                           mainAxisSize: MainAxisSize.min,
@@ -205,14 +215,14 @@ class ScheduleScreen extends ConsumerWidget {
                                 '${clock(DateTime.parse(s['start_at'] as String))} – ${clock(DateTime.parse(s['end_at'] as String))}',
                               ),
                             if (slots.isEmpty)
-                              const Text('Свободных интервалов нет'),
+                              Text(tr(context, "Свободных интервалов нет")),
                           ],
                         ),
                       ),
                       actions: [
                         TextButton(
                           onPressed: () => Navigator.pop(c),
-                          child: const Text('Закрыть'),
+                          child: Text(tr(context, "Закрыть")),
                         ),
                       ],
                     ),
@@ -223,7 +233,7 @@ class ScheduleScreen extends ConsumerWidget {
               }
             },
             icon: const Icon(Icons.event_available),
-            label: const Text('Свободное время'),
+            label: Text(tr(context, "Свободное время")),
           ),
       ],
     );
@@ -259,8 +269,8 @@ class BlockCard extends ConsumerWidget {
             b.note?.isNotEmpty == true
                 ? b.note!
                 : b.type == 'ORDER'
-                ? 'Заказ'
-                : 'Занятость',
+                ? tr(context, "Заказ")
+                : tr(context, "Занятость"),
           ),
           subtitle: Text('${when(b.startAt)} – ${when(b.endAt)}'),
           trailing: const Icon(Icons.chevron_right),
@@ -310,7 +320,10 @@ class _BlockForm extends ConsumerState<BlockFormScreen> {
   Future<void> save() async {
     if (!key.currentState!.validate()) return;
     if (!start.isBefore(end)) {
-      showError(context, Exception('Начало должно быть раньше окончания'));
+      showError(
+        context,
+        Exception(tr(context, "Начало должно быть раньше окончания")),
+      );
       return;
     }
     setState(() => busy = true);
@@ -346,7 +359,9 @@ class _BlockForm extends ConsumerState<BlockFormScreen> {
 
   @override
   Widget build(BuildContext context) => PageBody(
-    widget.block == null ? 'Добавить занятость' : 'Редактировать занятость',
+    widget.block == null
+        ? tr(context, "Добавить занятость")
+        : tr(context, "Редактировать занятость"),
     children: [
       Surface(
         child: Form(
@@ -355,11 +370,14 @@ class _BlockForm extends ConsumerState<BlockFormScreen> {
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               SegmentedButton<String>(
-                segments: const [
-                  ButtonSegment(value: 'MANUAL', label: Text('Личная')),
+                segments: [
+                  ButtonSegment(
+                    value: 'MANUAL',
+                    label: Text(tr(context, "Личная")),
+                  ),
                   ButtonSegment(
                     value: 'UNAVAILABLE',
-                    label: Text('Отпуск / выходной'),
+                    label: Text(tr(context, "Отпуск / выходной")),
                   ),
                 ],
                 selected: {type},
@@ -374,21 +392,24 @@ class _BlockForm extends ConsumerState<BlockFormScreen> {
                   data: (list) => DropdownButtonFormField<String>(
                     initialValue: master,
                     isExpanded: true,
-                    decoration: const InputDecoration(labelText: 'Мастер *'),
+                    decoration: InputDecoration(
+                      labelText: tr(context, "Мастер *"),
+                    ),
                     items: [
                       for (final m in list)
                         DropdownMenuItem(value: m.id, child: Text(m.fullName)),
                     ],
                     onChanged: (v) => master = v,
-                    validator: (v) => v == null ? 'Выберите мастера' : null,
+                    validator: (v) =>
+                        v == null ? tr(context, "Выберите мастера") : null,
                   ),
                 ),
                 const SizedBox(height: 16),
               ],
               TextFormField(
                 controller: note,
-                decoration: const InputDecoration(
-                  labelText: 'Название или комментарий',
+                decoration: InputDecoration(
+                  labelText: tr(context, "Название или комментарий"),
                 ),
                 maxLength: 255,
               ),
@@ -399,7 +420,7 @@ class _BlockForm extends ConsumerState<BlockFormScreen> {
                   if (d != null) setState(() => start = d);
                 },
                 icon: const Icon(Icons.calendar_today_outlined),
-                label: Text('Начало: ${when(start)}'),
+                label: Text(tr(context, "Начало: {0}", [when(start)])),
               ),
               const SizedBox(height: 12),
               OutlinedButton.icon(
@@ -408,17 +429,22 @@ class _BlockForm extends ConsumerState<BlockFormScreen> {
                   if (d != null) setState(() => end = d);
                 },
                 icon: const Icon(Icons.schedule),
-                label: Text('Окончание: ${when(end)}'),
+                label: Text(tr(context, "Окончание: {0}", [when(end)])),
               ),
               const SizedBox(height: 20),
-              const Text(
-                'В этот период новые заказы не смогут занять ваше время.',
+              Text(
+                tr(
+                  context,
+                  "В этот период новые заказы не смогут занять ваше время.",
+                ),
                 style: TextStyle(color: Color(0xFF78869C)),
               ),
               const SizedBox(height: 24),
               FilledButton(
                 onPressed: busy ? null : save,
-                child: Text(busy ? 'Сохраняем…' : 'Сохранить'),
+                child: Text(
+                  busy ? tr(context, "Сохраняем…") : tr(context, "Сохранить"),
+                ),
               ),
               if (widget.block != null)
                 TextButton(
@@ -428,15 +454,15 @@ class _BlockForm extends ConsumerState<BlockFormScreen> {
                           final yes = await showDialog<bool>(
                             context: context,
                             builder: (c) => AlertDialog(
-                              title: const Text('Удалить занятость?'),
+                              title: Text(tr(context, "Удалить занятость?")),
                               actions: [
                                 TextButton(
                                   onPressed: () => Navigator.pop(c, false),
-                                  child: const Text('Назад'),
+                                  child: Text(tr(context, "Назад")),
                                 ),
                                 FilledButton(
                                   onPressed: () => Navigator.pop(c, true),
-                                  child: const Text('Удалить'),
+                                  child: Text(tr(context, "Удалить")),
                                 ),
                               ],
                             ),
@@ -456,8 +482,8 @@ class _BlockForm extends ConsumerState<BlockFormScreen> {
                             if (ok) context.pop();
                           }
                         },
-                  child: const Text(
-                    'Удалить блок',
+                  child: Text(
+                    tr(context, "Удалить блок"),
                     style: TextStyle(color: Colors.red),
                   ),
                 ),
@@ -584,8 +610,9 @@ class _Timeline extends ConsumerState<DayTimeline> {
     final title = b.note?.isNotEmpty == true
         ? b.note!
         : b.order != null
-        ? ref.watch(orderProvider(b.order!)).valueOrNull?.title ?? 'Заказ'
-        : 'Занятость';
+        ? ref.watch(orderProvider(b.order!)).valueOrNull?.title ??
+              tr(context, "Заказ")
+        : tr(context, "Занятость");
     return Positioned(
       top: from + 2,
       left: 48 + lane * width,
@@ -644,12 +671,12 @@ class _Timeline extends ConsumerState<DayTimeline> {
           children: [
             ListTile(
               leading: const Icon(Icons.add_task, color: blue),
-              title: const Text('Новый заказ'),
+              title: Text(tr(context, "Новый заказ")),
               onTap: () => Navigator.pop(c, '/orders/new'),
             ),
             ListTile(
               leading: const Icon(Icons.event_busy, color: blue),
-              title: const Text('Личная занятость'),
+              title: Text(tr(context, "Личная занятость")),
               onTap: () => Navigator.pop(c, '/schedule/new'),
             ),
           ],

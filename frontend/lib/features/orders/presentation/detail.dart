@@ -1,3 +1,5 @@
+import '../../../core/l10n.dart';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -73,7 +75,7 @@ class _Detail extends ConsumerState<OrderDetailScreen> {
 
   @override
   Widget build(BuildContext context) => PageBody(
-    'Карточка заказа',
+    tr(context, "Карточка заказа"),
     children: [
       AsyncBox(
         value: ref.watch(orderProvider(widget.id)),
@@ -100,11 +102,11 @@ class _Detail extends ConsumerState<OrderDetailScreen> {
                     const SizedBox(height: 20),
                     Row(
                       children: [
-                        Avatar(c?.label ?? 'Клиент'),
+                        Avatar(c?.label ?? tr(context, "Клиент")),
                         const SizedBox(width: 12),
                         Expanded(
                           child: Text(
-                            c?.label ?? 'Клиент',
+                            c?.label ?? tr(context, "Клиент"),
                             style: Theme.of(context).textTheme.titleLarge,
                           ),
                         ),
@@ -131,24 +133,32 @@ class _Detail extends ConsumerState<OrderDetailScreen> {
                       '${clock(o.startAt)} – ${clock(o.endAt)}',
                     ),
                     const SizedBox(height: 16),
-                    const Text(
-                      'Описание',
+                    Text(
+                      tr(context, "Описание"),
                       style: TextStyle(fontWeight: FontWeight.w700),
                     ),
                     const SizedBox(height: 8),
-                    Text(o.description.isEmpty ? 'Не указано' : o.description),
+                    Text(
+                      o.description.isEmpty
+                          ? tr(context, "Не указано")
+                          : o.description,
+                    ),
                     const SizedBox(height: 20),
-                    const Text(
-                      'Стоимость',
+                    Text(
+                      tr(context, "Стоимость"),
                       style: TextStyle(color: Color(0xFF78869C)),
                     ),
                     Text(
                       money(o.finalPrice ?? o.estimatedPrice),
                       style: Theme.of(context).textTheme.headlineMedium,
                     ),
-                    Text("Получено: ${money(o.paidAmount)}"),
+                    Text(tr(context, "Получено: {0}", [money(o.paidAmount)])),
                     if (o.outstandingAmount != null)
-                      Text("Осталось: ${money(o.outstandingAmount)}"),
+                      Text(
+                        tr(context, "Осталось: {0}", [
+                          money(o.outstandingAmount),
+                        ]),
+                      ),
                   ],
                 ),
               ),
@@ -156,32 +166,32 @@ class _Detail extends ConsumerState<OrderDetailScreen> {
               if (['NEW', 'PENDING', 'TRANSFERRED'].contains(o.status))
                 FilledButton(
                   onPressed: busy ? null : () => action('confirm'),
-                  child: const Text('Подтвердить заказ'),
+                  child: Text(tr(context, "Подтвердить заказ")),
                 ),
               if (o.status == 'CONFIRMED')
                 FilledButton(
                   onPressed: busy ? null : () => action('start'),
-                  child: const Text('Начать работу'),
+                  child: Text(tr(context, "Начать работу")),
                 ),
               if (['CONFIRMED', 'IN_PROGRESS'].contains(o.status))
                 Padding(
                   padding: const EdgeInsets.only(top: 12),
                   child: FilledButton(
                     onPressed: busy ? null : () => action('complete'),
-                    child: const Text('Завершить работу'),
+                    child: Text(tr(context, "Завершить работу")),
                   ),
                 ),
               if (o.status == 'COMPLETED')
                 FilledButton(
                   onPressed: busy ? null : () => dialog('mark-paid', o),
-                  child: const Text('Отметить оплаченным'),
+                  child: Text(tr(context, "Отметить оплаченным")),
                 ),
               if (editable) ...[
                 const SizedBox(height: 12),
                 OutlinedButton.icon(
                   onPressed: busy ? null : () => dialog('reschedule', o),
                   icon: const Icon(Icons.event_repeat),
-                  label: const Text('Перенести'),
+                  label: Text(tr(context, "Перенести")),
                 ),
                 const SizedBox(height: 12),
                 OutlinedButton.icon(
@@ -189,7 +199,7 @@ class _Detail extends ConsumerState<OrderDetailScreen> {
                       ? null
                       : () => context.push('/orders/${o.id}/edit'),
                   icon: const Icon(Icons.edit_outlined),
-                  label: const Text('Редактировать'),
+                  label: Text(tr(context, "Редактировать")),
                 ),
               ],
               if (live) ...[
@@ -199,34 +209,40 @@ class _Detail extends ConsumerState<OrderDetailScreen> {
                       ? null
                       : () => context.push('/orders/${o.id}/transfer'),
                   icon: const Icon(Icons.swap_horiz),
-                  label: const Text('Передать в систему'),
+                  label: Text(tr(context, "Передать в систему")),
                 ),
                 const SizedBox(height: 12),
                 TextButton.icon(
                   onPressed: busy ? null : () => dialog('cancel', o),
                   icon: const Icon(Icons.cancel_outlined, color: Colors.red),
-                  label: const Text(
-                    'Отменить заказ',
+                  label: Text(
+                    tr(context, "Отменить заказ"),
                     style: TextStyle(color: Colors.red),
                   ),
                 ),
               ],
               const SizedBox(height: 28),
-              Text('Платежи', style: Theme.of(context).textTheme.titleLarge),
+              Text(
+                tr(context, "Платежи"),
+                style: Theme.of(context).textTheme.titleLarge,
+              ),
               const SizedBox(height: 12),
               OutlinedButton.icon(
                 onPressed: busy ? null : () => dialog('payments', o),
                 icon: const Icon(Icons.payments_outlined),
-                label: const Text('Зафиксировать платёж'),
+                label: Text(tr(context, "Зафиксировать платёж")),
               ),
               const SizedBox(height: 12),
               AsyncBox(
                 value: ref.watch(paymentsProvider(o.id)),
                 retry: () => ref.invalidate(paymentsProvider(o.id)),
                 data: (p) => p.isEmpty
-                    ? const Empty(
-                        'Платежей пока нет',
-                        body: 'Отметка «Оплачен» и учёт платежей — отдельные действия.',
+                    ? Empty(
+                        tr(context, "Платежей пока нет"),
+                        body: tr(
+                          context,
+                          "Отметка «Оплачен» и учёт платежей — отдельные действия.",
+                        ),
                       )
                     : Surface(
                         child: Column(
@@ -247,7 +263,7 @@ class _Detail extends ConsumerState<OrderDetailScreen> {
               ),
               const SizedBox(height: 28),
               Text(
-                'История заказа',
+                tr(context, "История заказа"),
                 style: Theme.of(context).textTheme.titleLarge,
               ),
               const SizedBox(height: 12),
@@ -263,7 +279,11 @@ class _Detail extends ConsumerState<OrderDetailScreen> {
                           size: 18,
                         ),
                         title: Text(
-                          statuses[j['to_status']] ?? j['to_status'].toString(),
+                          tr(
+                            context,
+                            statuses[j['to_status']] ??
+                                j['to_status'].toString(),
+                          ),
                         ),
                         subtitle: Text(
                           '${when(DateTime.parse(j['created_at'] as String))}${(j['note'] ?? '').toString().isEmpty ? '' : '\n${j['note']}'}',
@@ -274,7 +294,7 @@ class _Detail extends ConsumerState<OrderDetailScreen> {
               ),
               const SizedBox(height: 24),
               Text(
-                'История передач',
+                tr(context, "История передач"),
                 style: Theme.of(context).textTheme.titleLarge,
               ),
               const SizedBox(height: 12),
@@ -282,14 +302,16 @@ class _Detail extends ConsumerState<OrderDetailScreen> {
                 value: ref.watch(historyTransfersProvider(o.id)),
                 retry: () => ref.invalidate(historyTransfersProvider(o.id)),
                 data: (list) => list.isEmpty
-                    ? const Empty('Передач ещё не было')
+                    ? Empty(tr(context, "Передач ещё не было"))
                     : Surface(
                         child: Column(
                           children: [
                             for (final t in list)
                               ListTile(
                                 contentPadding: EdgeInsets.zero,
-                                title: Text(statuses[t.status] ?? t.status),
+                                title: Text(
+                                  tr(context, statuses[t.status] ?? t.status),
+                                ),
                                 subtitle: Text(
                                   '${when(t.offeredAt)}\n${t.reason}',
                                 ),
@@ -340,10 +362,10 @@ class _ActionDialog extends State<OrderActionDialog> {
     return AlertDialog(
       title: Text(
         {
-          'cancel': 'Отменить заказ',
-          'reschedule': 'Перенести заказ',
-          'mark-paid': 'Отметить оплаченным',
-          'payments': 'Новый платёж',
+          'cancel': tr(context, "Отменить заказ"),
+          'reschedule': tr(context, "Перенести заказ"),
+          'mark-paid': tr(context, "Отметить оплаченным"),
+          'payments': tr(context, "Новый платёж"),
         }[mode]!,
       ),
       content: SingleChildScrollView(
@@ -358,27 +380,27 @@ class _ActionDialog extends State<OrderActionDialog> {
                     final d = await pickDateTime(context, start);
                     if (d != null) setState(() => start = d);
                   },
-                  child: Text('Начало: ${when(start)}'),
+                  child: Text(tr(context, "Начало: {0}", [when(start)])),
                 ),
                 OutlinedButton(
                   onPressed: () async {
                     final d = await pickDateTime(context, end);
                     if (d != null) setState(() => end = d);
                   },
-                  child: Text('Конец: ${when(end)}'),
+                  child: Text(tr(context, "Конец: {0}", [when(end)])),
                 ),
               ] else ...[
                 if (mode == 'cancel')
                   DropdownButtonFormField<String>(
                     initialValue: by,
-                    items: const [
+                    items: [
                       DropdownMenuItem(
                         value: 'CLIENT',
-                        child: Text('Отмена клиентом'),
+                        child: Text(tr(context, "Отмена клиентом")),
                       ),
                       DropdownMenuItem(
                         value: 'MASTER',
-                        child: Text('Отмена мастером'),
+                        child: Text(tr(context, "Отмена мастером")),
                       ),
                     ],
                     onChanged: (v) => by = v!,
@@ -387,20 +409,20 @@ class _ActionDialog extends State<OrderActionDialog> {
                   controller: text,
                   decoration: InputDecoration(
                     labelText: mode == 'cancel'
-                        ? 'Причина отмены *'
-                        : 'Сумма, ₸ *',
+                        ? tr(context, "Причина отмены *")
+                        : tr(context, "Сумма, ₸ *"),
                   ),
                   keyboardType: mode == 'cancel'
                       ? TextInputType.text
                       : const TextInputType.numberWithOptions(decimal: true),
                   validator: (v) {
                     if (v == null || v.trim().isEmpty) {
-                      return 'Обязательное поле';
+                      return tr(context, "Обязательное поле");
                     }
                     if (mode == 'cancel') return null;
                     final n = num.tryParse(v.replaceAll(',', '.'));
                     return n == null || n < (mode == 'payments' ? 0.01 : 0)
-                        ? 'Некорректная сумма'
+                        ? tr(context, "Некорректная сумма")
                         : null;
                   },
                 ),
@@ -408,16 +430,19 @@ class _ActionDialog extends State<OrderActionDialog> {
                   const SizedBox(height: 16),
                   DropdownButtonFormField<String>(
                     initialValue: type,
-                    items: const [
+                    items: [
                       DropdownMenuItem(
                         value: 'FULL',
-                        child: Text('Полная оплата'),
+                        child: Text(tr(context, "Полная оплата")),
                       ),
                       DropdownMenuItem(
                         value: 'PREPAYMENT',
-                        child: Text('Предоплата'),
+                        child: Text(tr(context, "Предоплата")),
                       ),
-                      DropdownMenuItem(value: 'REFUND', child: Text('Возврат')),
+                      DropdownMenuItem(
+                        value: 'REFUND',
+                        child: Text(tr(context, "Возврат")),
+                      ),
                     ],
                     onChanged: (v) => setState(() {
                       type = v!;
@@ -437,9 +462,9 @@ class _ActionDialog extends State<OrderActionDialog> {
                           value: s,
                           child: Text(
                             {
-                              'PAID': 'Оплачен',
-                              'PENDING': 'Ожидается',
-                              'REFUNDED': 'Возвращён',
+                              'PAID': tr(context, "Оплачен"),
+                              'PENDING': tr(context, "Ожидается"),
+                              'REFUNDED': tr(context, "Возвращён"),
                             }[s]!,
                           ),
                         ),
@@ -455,7 +480,7 @@ class _ActionDialog extends State<OrderActionDialog> {
       actions: [
         TextButton(
           onPressed: () => Navigator.pop(context),
-          child: const Text('Назад'),
+          child: Text(tr(context, "Назад")),
         ),
         FilledButton(
           onPressed: () {
@@ -463,7 +488,7 @@ class _ActionDialog extends State<OrderActionDialog> {
             if (mode == 'reschedule' && !start.isBefore(end)) {
               showError(
                 context,
-                Exception('Начало должно быть раньше окончания'),
+                Exception(tr(context, "Начало должно быть раньше окончания")),
               );
               return;
             }
@@ -481,7 +506,7 @@ class _ActionDialog extends State<OrderActionDialog> {
               },
             });
           },
-          child: const Text('Сохранить'),
+          child: Text(tr(context, "Сохранить")),
         ),
       ],
     );

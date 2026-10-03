@@ -1,3 +1,5 @@
+import 'l10n.dart';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -153,12 +155,12 @@ class SplashScreen extends ConsumerWidget {
                       const SizedBox(height: 16),
                       FilledButton(
                         onPressed: () => ref.invalidate(authProvider),
-                        child: const Text('Повторить'),
+                        child: Text(tr(context, "Повторить")),
                       ),
                       TextButton(
                         onPressed: () =>
                             ref.read(authProvider.notifier).logout(),
-                        child: const Text('Войти заново'),
+                        child: Text(tr(context, "Войти заново")),
                       ),
                     ],
                   )
@@ -184,15 +186,19 @@ class CrmShell extends ConsumerWidget {
         : path.startsWith('/schedule')
         ? 3
         : 4;
-    const entries = [
-      ('Главная', Icons.home_outlined, '/'),
-      ('Заказы', Icons.receipt_long_outlined, '/orders'),
-      ('Календарь', Icons.calendar_month_outlined, '/schedule'),
-      ('Клиенты', Icons.people_outline, '/clients'),
-      ('Передачи', Icons.swap_horiz, '/transfers'),
-      ('Статистика', Icons.bar_chart, '/statistics'),
-      ('Уведомления', Icons.notifications_outlined, '/notifications'),
-      ('Профиль', Icons.person_outline, '/profile'),
+    final entries = [
+      (tr(context, "Главная"), Icons.home_outlined, '/'),
+      (tr(context, "Заказы"), Icons.receipt_long_outlined, '/orders'),
+      (tr(context, "Календарь"), Icons.calendar_month_outlined, '/schedule'),
+      (tr(context, "Клиенты"), Icons.people_outline, '/clients'),
+      (tr(context, "Передачи"), Icons.swap_horiz, '/transfers'),
+      (tr(context, "Статистика"), Icons.bar_chart, '/statistics'),
+      (
+        tr(context, "Уведомления"),
+        Icons.notifications_outlined,
+        '/notifications',
+      ),
+      (tr(context, "Профиль"), Icons.person_outline, '/profile'),
     ];
     return Scaffold(
       body: Row(
@@ -259,7 +265,7 @@ class CrmShell extends ConsumerWidget {
                         child: FilledButton.icon(
                           onPressed: () => context.push('/orders/new'),
                           icon: const Icon(Icons.add),
-                          label: const Text('Новый заказ'),
+                          label: Text(tr(context, "Новый заказ")),
                         ),
                       ),
                     ],
@@ -279,25 +285,31 @@ class CrmShell extends ConsumerWidget {
                   : context.go(
                       ['/', '/orders', '/orders/new', '/schedule', '/more'][i],
                     ),
-              destinations: const [
+              destinations: [
                 NavigationDestination(
                   icon: Icon(Icons.home_outlined),
                   selectedIcon: Icon(Icons.home, color: blue),
-                  label: 'Главная',
+                  label: tr(context, "Главная"),
                 ),
                 NavigationDestination(
                   icon: Icon(Icons.receipt_long_outlined),
-                  label: 'Заказы',
+                  label:
+                      navigationOrdersLabels[Localizations.localeOf(context)
+                          .languageCode] ??
+                      'Заказы',
                 ),
                 NavigationDestination(
                   icon: Icon(Icons.add_circle, color: blue, size: 34),
-                  label: 'Добавить',
+                  label: tr(context, "Добавить"),
                 ),
                 NavigationDestination(
                   icon: Icon(Icons.calendar_month_outlined),
-                  label: 'Календарь',
+                  label: tr(context, "Календарь"),
                 ),
-                NavigationDestination(icon: Icon(Icons.menu), label: 'Ещё'),
+                NavigationDestination(
+                  icon: Icon(Icons.menu),
+                  label: tr(context, "Ещё"),
+                ),
               ],
             ),
     );

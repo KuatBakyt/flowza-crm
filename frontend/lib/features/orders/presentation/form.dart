@@ -1,3 +1,5 @@
+import '../../../core/l10n.dart';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -50,9 +52,9 @@ class _OrderForm extends ConsumerState<OrderFormScreen> {
     if (!start.isBefore(end)) {
       showError(
         context,
-        const AppFailure(
+        AppFailure(
           code: 'date',
-          message: 'Начало должно быть раньше окончания',
+          message: tr(context, "Начало должно быть раньше окончания"),
         ),
       );
       return;
@@ -151,7 +153,7 @@ class _OrderForm extends ConsumerState<OrderFormScreen> {
             data: (list) => DropdownButtonFormField<String>(
               initialValue: list.any((c) => c.id == client) ? client : null,
               isExpanded: true,
-              decoration: const InputDecoration(labelText: 'Клиент *'),
+              decoration: InputDecoration(labelText: tr(context, "Клиент *")),
               items: [
                 for (final c in list)
                   DropdownMenuItem(
@@ -160,7 +162,8 @@ class _OrderForm extends ConsumerState<OrderFormScreen> {
                   ),
               ],
               onChanged: (v) => client = v,
-              validator: (v) => v == null ? 'Выберите клиента' : null,
+              validator: (v) =>
+                  v == null ? tr(context, "Выберите клиента") : null,
             ),
           ),
           TextButton.icon(
@@ -169,13 +172,16 @@ class _OrderForm extends ConsumerState<OrderFormScreen> {
               if (id != null && mounted) setState(() => client = id);
             },
             icon: const Icon(Icons.person_add_alt),
-            label: const Text('Добавить нового клиента'),
+            label: Text(tr(context, "Добавить нового клиента")),
           ),
           TextFormField(
             controller: title,
-            decoration: const InputDecoration(labelText: 'Название услуги *'),
-            validator: (v) =>
-                v == null || v.trim().isEmpty ? 'Введите название' : null,
+            decoration: InputDecoration(
+              labelText: tr(context, "Название услуги *"),
+            ),
+            validator: (v) => v == null || v.trim().isEmpty
+                ? tr(context, "Введите название")
+                : null,
           ),
           const SizedBox(height: 16),
           if (!active)
@@ -186,7 +192,9 @@ class _OrderForm extends ConsumerState<OrderFormScreen> {
                 initialValue: allowed.any((s) => s['id'] == skill)
                     ? skill
                     : null,
-                decoration: const InputDecoration(labelText: 'Специализация *'),
+                decoration: InputDecoration(
+                  labelText: tr(context, "Специализация *"),
+                ),
                 isExpanded: true,
                 items: [
                   for (final s in allowed)
@@ -196,7 +204,8 @@ class _OrderForm extends ConsumerState<OrderFormScreen> {
                     ),
                 ],
                 onChanged: (v) => skill = v,
-                validator: (v) => v == null ? 'Выберите специализацию' : null,
+                validator: (v) =>
+                    v == null ? tr(context, "Выберите специализацию") : null,
               ),
             ),
           if (u?.admin == true && !active) ...[
@@ -206,14 +215,15 @@ class _OrderForm extends ConsumerState<OrderFormScreen> {
               retry: () => ref.invalidate(mastersCatalog),
               data: (list) => DropdownButtonFormField<String>(
                 initialValue: list.any((m) => m.id == master) ? master : null,
-                decoration: const InputDecoration(labelText: 'Мастер *'),
+                decoration: InputDecoration(labelText: tr(context, "Мастер *")),
                 isExpanded: true,
                 items: [
                   for (final m in list)
                     DropdownMenuItem(value: m.id, child: Text(m.fullName)),
                 ],
                 onChanged: (v) => master = v,
-                validator: (v) => v == null ? 'Назначьте мастера' : null,
+                validator: (v) =>
+                    v == null ? tr(context, "Назначьте мастера") : null,
               ),
             ),
           ],
@@ -221,19 +231,22 @@ class _OrderForm extends ConsumerState<OrderFormScreen> {
           TextFormField(
             controller: description,
             maxLines: 3,
-            decoration: const InputDecoration(labelText: 'Описание работ'),
+            decoration: InputDecoration(
+              labelText: tr(context, "Описание работ"),
+            ),
           ),
           const SizedBox(height: 16),
           TextFormField(
             controller: address,
-            decoration: const InputDecoration(labelText: 'Адрес *'),
-            validator: (v) =>
-                v == null || v.trim().isEmpty ? 'Введите адрес' : null,
+            decoration: InputDecoration(labelText: tr(context, "Адрес *")),
+            validator: (v) => v == null || v.trim().isEmpty
+                ? tr(context, "Введите адрес")
+                : null,
           ),
           const SizedBox(height: 16),
           TextFormField(
             controller: district,
-            decoration: const InputDecoration(labelText: 'Район'),
+            decoration: InputDecoration(labelText: tr(context, "Район")),
           ),
           const SizedBox(height: 16),
           if (!active) ...[
@@ -243,7 +256,7 @@ class _OrderForm extends ConsumerState<OrderFormScreen> {
                 if (d != null) setState(() => start = d);
               },
               icon: const Icon(Icons.calendar_today_outlined),
-              label: Text('Начало: ${when(start)}'),
+              label: Text(tr(context, "Начало: {0}", [when(start)])),
             ),
             const SizedBox(height: 12),
             OutlinedButton.icon(
@@ -252,29 +265,36 @@ class _OrderForm extends ConsumerState<OrderFormScreen> {
                 if (d != null) setState(() => end = d);
               },
               icon: const Icon(Icons.schedule),
-              label: Text('Окончание: ${when(end)}'),
+              label: Text(tr(context, "Окончание: {0}", [when(end)])),
             ),
           ] else
-            const Text(
-              'Для изменения времени подтверждённого заказа используйте «Перенести» в карточке.',
+            Text(
+              tr(
+                context,
+                "Для изменения времени подтверждённого заказа используйте «Перенести» в карточке.",
+              ),
             ),
           const SizedBox(height: 16),
           TextFormField(
             controller: price,
             keyboardType: const TextInputType.numberWithOptions(decimal: true),
-            decoration: const InputDecoration(
-              labelText: 'Ориентировочная стоимость, ₸',
+            decoration: InputDecoration(
+              labelText: tr(context, "Ориентировочная стоимость, ₸"),
             ),
             validator: (v) {
               if (v == null || v.trim().isEmpty) return null;
               final n = num.tryParse(v.replaceAll(',', '.'));
-              return n == null || n < 0 ? 'Введите сумму от 0' : null;
+              return n == null || n < 0
+                  ? tr(context, "Введите сумму от 0")
+                  : null;
             },
           ),
           const SizedBox(height: 24),
           FilledButton(
             onPressed: busy ? null : () => save(o),
-            child: Text(busy ? 'Сохраняем…' : 'Сохранить заказ'),
+            child: Text(
+              busy ? tr(context, "Сохраняем…") : tr(context, "Сохранить заказ"),
+            ),
           ),
         ],
       ),
@@ -283,7 +303,9 @@ class _OrderForm extends ConsumerState<OrderFormScreen> {
 
   @override
   Widget build(BuildContext context) => PageBody(
-    widget.id == null ? 'Новый заказ' : 'Редактировать заказ',
+    widget.id == null
+        ? tr(context, "Новый заказ")
+        : tr(context, "Редактировать заказ"),
     children: [
       Surface(
         child: widget.id == null

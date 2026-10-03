@@ -1,3 +1,5 @@
+import '../../../core/l10n.dart';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -25,12 +27,12 @@ class _Notifications extends ConsumerState<NotificationsScreen> {
   String? busy;
   @override
   Widget build(BuildContext context) => PageBody(
-    'Уведомления',
+    tr(context, "Уведомления"),
     children: [
       Row(
         children: [
           FilterChip(
-            label: const Text('Непрочитанные'),
+            label: Text(tr(context, "Непрочитанные")),
             selected: ref.watch(notificationsFilter)['is_read'] == 'false',
             onSelected: (v) => ref.read(notificationsFilter.notifier).state = v
                 ? {'is_read': 'false'}
@@ -40,7 +42,7 @@ class _Notifications extends ConsumerState<NotificationsScreen> {
           ref
               .watch(unreadProvider)
               .maybeWhen(
-                data: (n) => Text('$n новых'),
+                data: (n) => Text(tr(context, "{0} новых", [n])),
                 orElse: () => const SizedBox.shrink(),
               ),
         ],
@@ -49,7 +51,7 @@ class _Notifications extends ConsumerState<NotificationsScreen> {
         value: ref.watch(notificationsProvider),
         retry: () => ref.invalidate(notificationsProvider),
         data: (p) => p.items.isEmpty
-            ? const Empty('Уведомлений нет')
+            ? Empty(tr(context, "Уведомлений нет"))
             : Column(
                 children: [
                   for (final n in p.items)
@@ -69,7 +71,7 @@ class _Notifications extends ConsumerState<NotificationsScreen> {
                             ),
                           ),
                           title: Text(
-                            n.title,
+                            tr(context, n.title),
                             style: TextStyle(
                               fontWeight: n.isRead
                                   ? FontWeight.w500
@@ -96,7 +98,7 @@ class _Notifications extends ConsumerState<NotificationsScreen> {
                                             method: 'POST',
                                             data: {},
                                           );
-                                    }, message: 'Прочитано');
+                                    }, message: tr(context, "Прочитано"));
                                   }
                                   if (mounted && context.mounted) {
                                     setState(() => busy = null);

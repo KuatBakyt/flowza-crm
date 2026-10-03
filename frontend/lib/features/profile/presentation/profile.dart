@@ -1,3 +1,5 @@
+import '../../../core/l10n.dart';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -23,7 +25,7 @@ class _Profile extends ConsumerState<ProfileScreen> {
     final m = u.profile;
     final skills = ref.watch(skillsCatalog).valueOrNull ?? [];
     return PageBody(
-      'Профиль',
+      tr(context, "Профиль"),
       children: [
         Surface(
           child: Column(
@@ -44,17 +46,20 @@ class _Profile extends ConsumerState<ProfileScreen> {
               if (m != null) ...[
                 const SizedBox(height: 10),
                 Text(
-                  '★ ${m.internalRating} · ${m.completedOrdersCount} выполнено',
+                  tr(context, "★ {0} · {1} выполнено", [
+                    m.internalRating,
+                    m.completedOrdersCount,
+                  ]),
                   style: const TextStyle(color: Color(0xFFC98B1A)),
                 ),
                 const SizedBox(height: 16),
                 SwitchListTile(
                   contentPadding: EdgeInsets.zero,
-                  title: const Text('Принимать заказы'),
+                  title: Text(tr(context, "Принимать заказы")),
                   subtitle: Text(
                     m.isAvailable
-                        ? 'Вы доступны для новых заказов'
-                        : 'Новые передачи отключены',
+                        ? tr(context, "Вы доступны для новых заказов")
+                        : tr(context, "Новые передачи отключены"),
                   ),
                   value: m.isAvailable,
                   onChanged: busy
@@ -85,7 +90,7 @@ class _Profile extends ConsumerState<ProfileScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Info(Icons.build_outlined, 'Специализации'),
+                Info(Icons.build_outlined, tr(context, "Специализации")),
                 for (final skill in m.skills.where(
                   (s) => s['is_active'] == true,
                 ))
@@ -98,31 +103,37 @@ class _Profile extends ConsumerState<ProfileScreen> {
                                   )
                                   .firstOrNull?['name']
                               as String? ??
-                          'Специализация',
+                          tr(context, "Специализация"),
                     ),
                   ),
                 const Divider(),
                 Info(Icons.location_city_outlined, m.city),
                 Info(
                   Icons.place_outlined,
-                  m.districts.isEmpty ? 'Весь город' : m.districts.join(', '),
+                  m.districts.isEmpty
+                      ? tr(context, "Весь город")
+                      : m.districts.join(', '),
                 ),
                 const Divider(),
                 ListTile(
                   contentPadding: EdgeInsets.zero,
                   leading: const Icon(Icons.beach_access_outlined, color: blue),
-                  title: const Text('Отпуск / выходной'),
+                  title: Text(tr(context, "Отпуск / выходной")),
                   trailing: const Icon(Icons.chevron_right),
                   onTap: () => context.push('/schedule/new'),
                 ),
-                const Text(
-                  'Специализации назначает администратор. Отпуск отмечается блоком занятости.',
+                Text(
+                  tr(
+                    context,
+                    "Специализации назначает администратор. Отпуск отмечается блоком занятости.",
+                  ),
                   style: TextStyle(color: Color(0xFF78869C), fontSize: 12),
                 ),
               ],
             ),
           ),
         if (m != null) const WorkingHoursEditor(),
+        const Surface(child: LanguageSelector()),
         if (u.admin)
           OutlinedButton.icon(
             onPressed: () async {
@@ -130,11 +141,14 @@ class _Profile extends ConsumerState<ProfileScreen> {
               final uri = Uri.parse(base).resolve('/admin/');
               if (!await launchUrl(uri, mode: LaunchMode.externalApplication) &&
                   context.mounted) {
-                showError(context, Exception('Не удалось открыть админку'));
+                showError(
+                  context,
+                  Exception(tr(context, "Не удалось открыть админку")),
+                );
               }
             },
             icon: const Icon(Icons.admin_panel_settings_outlined),
-            label: const Text('Django admin'),
+            label: Text(tr(context, 'Администратор')),
           ),
         OutlinedButton.icon(
           onPressed: busy
@@ -149,7 +163,7 @@ class _Profile extends ConsumerState<ProfileScreen> {
                   if (mounted) setState(() => busy = false);
                 },
           icon: const Icon(Icons.logout),
-          label: const Text('Выйти'),
+          label: Text(tr(context, "Выйти")),
         ),
       ],
     );
@@ -226,19 +240,19 @@ class _WorkingHoursEditor extends ConsumerState<WorkingHoursEditor> {
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           Text(
-            'Рабочий график',
+            tr(context, "Рабочий график"),
             style: Theme.of(context).textTheme.titleMedium,
           ),
           const SizedBox(height: 4),
           Text(
-            'Часовой пояс · ${master.timezone}',
+            tr(context, "Часовой пояс · {0}", [master.timezone]),
             style: const TextStyle(color: Color(0xFF78869C), fontSize: 12),
           ),
           const SizedBox(height: 12),
           for (var day = 0; day < 7; day++) ...[
             Row(
               children: [
-                Expanded(child: Text(days[day])),
+                Expanded(child: Text(tr(context, days[day]))),
                 Switch(
                   value: enabled[day],
                   activeThumbColor: Colors.white,
@@ -251,9 +265,9 @@ class _WorkingHoursEditor extends ConsumerState<WorkingHoursEditor> {
                   width: 136,
                   child: enabled[day]
                       ? intervalRow(day, 0)
-                      : const Center(
+                      : Center(
                           child: Text(
-                            'Не работаю',
+                            tr(context, "Не работаю"),
                             style: TextStyle(color: Color(0xFF78869C)),
                           ),
                         ),
@@ -267,7 +281,7 @@ class _WorkingHoursEditor extends ConsumerState<WorkingHoursEditor> {
                   children: [
                     SizedBox(width: 136, child: intervalRow(day, i)),
                     IconButton(
-                      tooltip: 'Удалить интервал',
+                      tooltip: tr(context, "Удалить интервал"),
                       onPressed: busy
                           ? null
                           : () => setState(() => hours![day].removeAt(i)),
@@ -282,7 +296,7 @@ class _WorkingHoursEditor extends ConsumerState<WorkingHoursEditor> {
                       ? null
                       : () =>
                             setState(() => hours![day].add(['14:00', '18:00'])),
-                  child: const Text('Добавить интервал'),
+                  child: Text(tr(context, "Добавить интервал")),
                 ),
               ),
             ],
@@ -308,7 +322,11 @@ class _WorkingHoursEditor extends ConsumerState<WorkingHoursEditor> {
                           showError(
                             context,
                             Exception(
-                              '${days[day]}: проверьте время и пересечение интервалов',
+                              tr(
+                                context,
+                                "{0}: проверьте время и пересечение интервалов",
+                                [days[day]],
+                              ),
                             ),
                           );
                           return;
@@ -333,14 +351,20 @@ class _WorkingHoursEditor extends ConsumerState<WorkingHoursEditor> {
                       setState(() => busy = false);
                       if (ok && context.mounted) {
                         ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(
-                            content: Text('Рабочий график сохранён'),
+                          SnackBar(
+                            content: Text(
+                              tr(context, "Рабочий график сохранён"),
+                            ),
                           ),
                         );
                       }
                     }
                   },
-            child: Text(busy ? 'Сохраняем…' : 'Сохранить график'),
+            child: Text(
+              busy
+                  ? tr(context, "Сохраняем…")
+                  : tr(context, "Сохранить график"),
+            ),
           ),
         ],
       ),
@@ -371,18 +395,26 @@ class MoreScreen extends StatelessWidget {
   const MoreScreen({super.key});
   @override
   Widget build(BuildContext context) => PageBody(
-    'Ещё',
+    tr(context, "Ещё"),
     children: [
       Surface(
         padding: EdgeInsets.zero,
         child: Column(
           children: [
             for (final entry in [
-              ('Клиенты', Icons.people_outline, '/clients'),
-              ('Предложения заказов', Icons.swap_horiz, '/transfers'),
-              ('Статистика', Icons.bar_chart, '/statistics'),
-              ('Уведомления', Icons.notifications_outlined, '/notifications'),
-              ('Профиль', Icons.person_outline, '/profile'),
+              (tr(context, "Клиенты"), Icons.people_outline, '/clients'),
+              (
+                tr(context, "Предложения заказов"),
+                Icons.swap_horiz,
+                '/transfers',
+              ),
+              (tr(context, "Статистика"), Icons.bar_chart, '/statistics'),
+              (
+                tr(context, "Уведомления"),
+                Icons.notifications_outlined,
+                '/notifications',
+              ),
+              (tr(context, "Профиль"), Icons.person_outline, '/profile'),
             ])
               ListTile(
                 leading: Icon(entry.$2, color: blue),

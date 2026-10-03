@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:flowza/core/api.dart';
 import 'package:flowza/core/appointment_check.dart';
@@ -18,6 +19,9 @@ void main() {
       );
       await t.pumpWidget(
         MaterialApp(
+          locale: const Locale('ru'),
+          supportedLocales: const [Locale('ru')],
+          localizationsDelegates: GlobalMaterialLocalizations.delegates,
           home: Builder(
             builder: (context) => Scaffold(
               body: FilledButton(
@@ -58,6 +62,9 @@ void main() {
     );
     await t.pumpWidget(
       MaterialApp(
+        locale: const Locale('ru'),
+        supportedLocales: const [Locale('ru')],
+        localizationsDelegates: GlobalMaterialLocalizations.delegates,
         home: Builder(
           builder: (context) => Scaffold(
             body: FilledButton(
