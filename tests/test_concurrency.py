@@ -85,3 +85,13 @@ def test_bot_retry_parallel_creates_one_order(data):
     assert result == ['ok', 'ok']
     assert Order.objects.filter(source='BOT').count() == 1
     assert BotOrderReceipt.objects.count() == 1
+
+
+def test_parallel_decline_creates_only_one_following_offer(data):
+    first = transfers.offer(data['order'], data['users'][0])
+    result = parallel(lambda: transfers.decline(first, data['users'][1]),
+                      lambda: transfers.decline(first, data['users'][1]))
+    assert sorted(result) == ['invalid', 'ok']
+    assert Transfer.objects.filter(order=data['order'], status='DECLINED').count() == 1
+    assert Transfer.objects.filter(order=data['order'], status='OFFERED',
+                                   to_master=data['masters'][2]).count() == 1

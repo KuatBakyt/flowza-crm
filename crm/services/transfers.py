@@ -1,9 +1,9 @@
 from django.db import transaction
-from django.db.models import Q
 from django.utils import timezone
 from rest_framework.exceptions import ValidationError, NotFound
 from crm.models import Order, Transfer, MasterProfile, ScheduleBlock, OrderStatusHistory
 from crm.errors import Conflict
+from crm.locations import serves_territory
 from .access import ensure_order_access, is_admin, profile
 from .orders import locked_order_by_id, locked_order, validate_master, record_status
 from .schedule import lock_masters, check_availability, create_order_block
@@ -17,8 +17,8 @@ def candidates(order):
     masters = MasterProfile.objects.filter(is_available=True,user__is_active=True,
         skills__is_active=True,skills__specialization=order.specialization,
         skills__specialization__is_active=True).exclude(pk=order.master_id).exclude(pk__in=busy).distinct()
-    # Exact district match, then rating, then completed work; final UUID breaks ties.
-    eligible = [m for m in masters if m.city == order.master.city and (not m.districts or not order.district or order.district in m.districts)]
+    # Filter territory before ranking; final UUID breaks ties.
+    eligible = [m for m in masters if serves_territory(m, order.master, order.district)]
     return sorted(eligible,key=lambda m:(-m.internal_rating,-m.completed_orders_count,str(m.pk)))
 
 
@@ -27,7 +27,14 @@ def offer(order, actor, reason=''):
     order = locked_order(order,actor)
     if order.status not in TRANSFERABLE or not order.master_id or order.start_at <= timezone.now():
         raise ValidationError('Заказ нельзя передать в текущем состоянии')
-    # No to_master input: selection is always performed by the server.
+    transfer = next_offer(order, reason)
+    if transfer is None:
+        raise Conflict('Подходящий свободный мастер не найден',code='no_transfer_candidate')
+    return transfer
+
+
+def next_offer(order, reason=''):
+    """Called only while the order row is locked; exhaustion is a valid result."""
     existing = Transfer.objects.filter(order=order,status='OFFERED').first()
     if existing:
         return existing
@@ -35,11 +42,10 @@ def offer(order, actor, reason=''):
     for candidate in candidates(order):
         if candidate.pk in excluded:
             continue
-        # Receiver's calendar is rechecked on acceptance, so offer itself doesn't reserve it.
         transfer = Transfer.objects.create(order=order,from_master=order.master,to_master=candidate,reason=reason)
         create_notification(candidate.user,'TRANSFER_OFFER','Новый заказ для передачи',payload={'transfer_id':str(transfer.pk),'order_id':str(order.pk)})
         return transfer
-    raise Conflict('Подходящий свободный мастер не найден',code='no_transfer_candidate')
+    return None
 
 
 @transaction.atomic
@@ -57,6 +63,10 @@ def accept(transfer, actor):
         raise ValidationError('Нельзя принять заказ в прошлом')
     locked = lock_masters(transfer.from_master_id,transfer.to_master_id)
     recipient = next(m for m in locked if m.pk == transfer.to_master_id)
+    sender = next(m for m in locked if m.pk == transfer.from_master_id)
+    if not serves_territory(recipient, sender, order.district):
+        raise Conflict('Город или район заказа больше не соответствует территории мастера',
+                       code='transfer_territory_conflict')
     validate_master(recipient,order.specialization)
     if not recipient.is_available or not recipient.user.is_active:
         raise ValidationError('Мастер недоступен')
@@ -76,14 +86,23 @@ def accept(transfer, actor):
 
 @transaction.atomic
 def decline(transfer, actor):
-    locked_order_by_id(transfer.order_id)
+    order = locked_order_by_id(transfer.order_id)
     transfer = Transfer.objects.select_for_update().get(pk=transfer.pk)
     if not is_admin(actor) and transfer.to_master_id != profile(actor).pk:
         raise NotFound()
     if transfer.status != 'OFFERED':
         raise ValidationError('Отклонить можно только активное предложение')
+    if order.status not in TRANSFERABLE or order.master_id != transfer.from_master_id or order.start_at <= timezone.now():
+        raise ValidationError('Предложение больше не соответствует заказу')
     transfer.status = 'DECLINED'
     transfer.responded_at = timezone.now()
     transfer.save(update_fields=['status','responded_at'])
     create_notification(transfer.from_master.user,'TRANSFER_DECLINED','Передача отклонена',payload={'order_id':str(transfer.order_id)})
+    following = next_offer(order, transfer.reason)
+    if following is None:
+        create_notification(order.master.user, 'TRANSFER_EXHAUSTED',
+                            'Не найден мастер для передачи',
+                            body='Все подходящие мастера отказались или недоступны. Заявка остаётся у вас.',
+                            payload={'order_id': str(order.pk)},
+                            dedup_key=f'transfer-exhausted:{transfer.pk}')
     return transfer

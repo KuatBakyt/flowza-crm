@@ -48,9 +48,12 @@ def test_no_manual_selection_and_decline_next_candidate(api,data):
     t = Transfer.objects.get(pk=r.data['id'])
     api.force_authenticate(data['users'][1])
     assert api.post(f'/api/v1/transfers/{t.pk}/decline/',{},format='json').status_code == 200
+    following = Transfer.objects.get(order=data['order'], status='OFFERED')
+    assert following.to_master_id == data['masters'][2].pk
+    assert following.reason == t.reason
     api.force_authenticate(data['users'][0])
     r = api.post(url(data,'transfers'),{},format='json')
-    assert r.data['to_master'] == data['masters'][2].pk
+    assert str(r.data['id']) == str(following.pk)
 
 
 def test_reschedule_expires_offer_and_unavailable_candidate(api,data):
@@ -62,3 +65,69 @@ def test_reschedule_expires_offer_and_unavailable_candidate(api,data):
     for m in data['masters'][1:]:
         m.is_available = False;m.save()
     assert api.post(url(data,'transfers'),{},format='json').status_code == 409
+
+
+def test_decline_exhaustion_keeps_order_and_notifies_owner(api, data):
+    first = transfers.offer(data['order'], data['users'][0], reason='Busy')
+    second = transfers.decline(first, data['users'][1])
+    assert second.status == 'DECLINED'
+    following = Transfer.objects.get(order=data['order'], status='OFFERED')
+    assert following.reason == 'Busy'
+    transfers.decline(following, data['users'][2])
+    assert not Transfer.objects.filter(order=data['order'], status='OFFERED').exists()
+    assert Transfer.objects.filter(order=data['order'], status='DECLINED').count() == 2
+    data['order'].refresh_from_db()
+    assert data['order'].master_id == data['masters'][0].pk
+    assert Notification.objects.filter(user=data['users'][0], type='TRANSFER_EXHAUSTED').count() == 1
+    with pytest.raises(transfers.ValidationError):
+        transfers.decline(following, data['users'][2])
+    assert Notification.objects.filter(type='TRANSFER_EXHAUSTED').count() == 1
+
+
+@pytest.mark.parametrize('field,value', [('city', 'Astana'), ('districts', ['Other district'])])
+def test_accept_rechecks_changed_territory(api, data, field, value):
+    assert api.post(url(data, 'confirm'), {}, format='json').status_code == 200
+    transfer = transfers.offer(data['order'], data['users'][0])
+    master = data['masters'][1]
+    setattr(master, field, value)
+    master.save()
+    api.force_authenticate(data['users'][1])
+    response = api.post(f'/api/v1/transfers/{transfer.pk}/accept/', {}, format='json')
+    assert response.status_code == 409 and response.data['code'] == 'transfer_territory_conflict'
+    transfer.refresh_from_db()
+    data['order'].refresh_from_db()
+    assert transfer.status == 'OFFERED'
+    assert data['order'].master_id == data['masters'][0].pk
+    assert ScheduleBlock.objects.get(order=data['order']).master_id == data['masters'][0].pk
+
+
+def test_almaty_aliases_all_city_and_latest_candidate_filter(api, data):
+    sender, first, second = data['masters']
+    sender.city = ' Алматы '
+    sender.save()
+    first.city = ' ALMATY '
+    first.districts = []
+    first.save()
+    second.city = 'Алма-Ата'
+    second.districts = ['Other district']
+    second.save()
+    transfer = transfers.offer(data['order'], data['users'][0])
+    assert transfer.to_master_id == first.pk
+    # Re-evaluate changes made after the first offer before selecting the next.
+    second.districts = []
+    second.save()
+    transfers.decline(transfer, data['users'][1])
+    following = Transfer.objects.get(order=data['order'], status='OFFERED')
+    assert following.to_master_id == second.pk
+    transfers.accept(following, data['users'][2])
+    data['order'].refresh_from_db()
+    assert data['order'].master_id == second.pk
+
+
+def test_decline_skips_newly_busy_candidate(data):
+    first = transfers.offer(data['order'], data['users'][0])
+    ScheduleBlock.objects.create(master=data['masters'][2], start_at=data['start'],
+                                end_at=data['end'], type='MANUAL')
+    transfers.decline(first, data['users'][1])
+    assert not Transfer.objects.filter(order=data['order'], status='OFFERED').exists()
+    assert Notification.objects.filter(type='TRANSFER_EXHAUSTED').exists()
